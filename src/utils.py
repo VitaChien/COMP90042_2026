@@ -33,12 +33,12 @@ def set_seed(seed: int) -> None:
 def save_json(obj: Any, path: Path | str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
+    with path.open("w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False)
 
 
 def load_json(path: Path | str) -> Any:
-    with Path(path).open() as f:
+    with Path(path).open(encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -53,8 +53,8 @@ def get_logger(name: str = "factcheck", level: int = logging.INFO) -> logging.Lo
             )
         )
         log.addHandler(h)
-        log.setLevel(level)
         log.propagate = False
+    log.setLevel(level)
     return log
 
 
