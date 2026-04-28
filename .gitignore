@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+checkpoints/*
+!checkpoints/.gitkeep
+cache/*
+!cache/.gitkeep
+outputs/*.json
+data/evidence.json
+*.ipynb_checkpoints
