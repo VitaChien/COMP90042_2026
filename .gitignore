@@ -9,3 +9,6 @@ cache/*
 outputs/*.json
 data/evidence.json
 *.ipynb_checkpoints
+.ruff_cache/
+knowledge/
+.cursor/
