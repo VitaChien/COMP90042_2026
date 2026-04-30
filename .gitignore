@@ -1,0 +1,11 @@
+evidence.json
+CLAUDE.md
+train-claims.json
+dev-claims.json
+dev-claims-baseline.json
+test-claims-unlabelled.json
+.DS_Store
+.claude/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
