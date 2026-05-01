@@ -93,3 +93,47 @@ def test_save_load_roundtrip_preserves_scores(tmp_path, tokenizer_and_model):
     s1 = rerank(model, tok, "claim", candidates, lookup, top_k=1, device="cpu", max_len=32)
     s2 = rerank(model2, tok, "claim", candidates, lookup, top_k=1, device="cpu", max_len=32)
     assert abs(s1[0][1] - s2[0][1]) < 1e-5
+
+
+def test_train_and_rerank_produce_identical_logit(tokenizer_and_model):
+    """The same (claim, evidence) input must produce the SAME score whether
+    fed through `CrossEncoderDataset.__getitem__` -> model.forward (training
+    path) or through `rerank` (inference path).
+
+    Any divergence here means train and inference disagree on what the
+    model "sees" - tokenization parity, padding mode, segment IDs, etc.
+    """
+    tok, model = tokenizer_and_model
+    model.eval()
+
+    claim = "the planet is warming"
+    evid = "global mean temperature has risen by 1.1 C since 1880"
+
+    # Training path
+    ds = CrossEncoderDataset(
+        [{"claim_text": claim, "evidence_text": evid, "label": 1}],
+        tok,
+        max_len=64,
+    )
+    item = ds[0]
+    batch = {k: v.unsqueeze(0) for k, v in item.items() if k != "labels"}
+    with torch.no_grad():
+        train_logit = model(**batch).item()
+    train_score = torch.sigmoid(torch.tensor(train_logit)).item()
+
+    # Inference path
+    out = rerank(
+        model,
+        tok,
+        claim_text=claim,
+        candidates=[("e-1", 0.0)],
+        evidence_lookup={"e-1": evid},
+        top_k=1,
+        device="cpu",
+        max_len=64,
+    )
+    rerank_score = out[0][1]
+
+    assert (
+        abs(train_score - rerank_score) < 1e-5
+    ), f"train vs rerank logit drift: train={train_score:.6f} rerank={rerank_score:.6f}"
