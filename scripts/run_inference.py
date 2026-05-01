@@ -39,7 +39,7 @@ def run_baseline(claims_path: Path, output_path: Path, top_k: int) -> dict:
     """BM25-only retrieval + random label. The M1 baseline."""
     cfg = Config()
     set_seed(cfg.seed)
-    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25.pkl")
+    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     claims = load_claims(claims_path)
 
     preds: dict[str, dict] = {}
@@ -68,7 +68,7 @@ def run_retriever_only(claims_path: Path, output_path: Path, top_k: int) -> dict
     device = _pick_device()
     log.info("Reranking on device: %s", device)
 
-    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25.pkl")
+    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     ce_tok, ce_model = load_cross_encoder(
         cfg.cross_encoder_model,
         cfg.ckpt_dir / "cross_encoder.pt",

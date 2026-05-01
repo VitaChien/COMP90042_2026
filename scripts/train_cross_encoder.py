@@ -44,7 +44,7 @@ def main() -> None:
     train_claims = load_claims(cfg.train_path)
     log.info("Loaded %d train claims", len(train_claims))
 
-    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25.pkl")
+    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
 
     bm25_cache = cfg.cache_dir / "bm25_train_top50.json"
     if bm25_cache.exists():
