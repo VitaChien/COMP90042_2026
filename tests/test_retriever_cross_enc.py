@@ -1,0 +1,95 @@
+import pytest
+import torch
+
+from src.retriever_cross_enc import (
+    CrossEncoderDataset,
+    build_cross_encoder,
+    rerank,
+)
+
+# Tiny BERT (4M params, 2-layer, 128-hidden) keeps these tests CPU-friendly.
+# Google's official miniature ships a tokenizer.json so it loads under the
+# stricter tokenizer-loading path in transformers >= 5.
+TINY_MODEL = "google/bert_uncased_L-2_H-128_A-2"
+
+
+@pytest.fixture(scope="module")
+def tokenizer_and_model():
+    return build_cross_encoder(TINY_MODEL)
+
+
+def test_dataset_yields_tensors(tokenizer_and_model):
+    tok, _ = tokenizer_and_model
+    pairs = [{"claim_text": "claim", "evidence_text": "ev", "label": 1}]
+    ds = CrossEncoderDataset(pairs, tok, max_len=32)
+    item = ds[0]
+    assert "input_ids" in item
+    assert "attention_mask" in item
+    assert item["labels"].dtype == torch.float32
+    assert item["input_ids"].shape[0] <= 32
+
+
+def test_dataset_resolves_evidence_via_lookup(tokenizer_and_model):
+    """When pairs only contain `evidence_id`, dataset must look up text."""
+    tok, _ = tokenizer_and_model
+    pairs = [{"claim_text": "c", "evidence_id": "e-1", "label": 0}]
+    ds = CrossEncoderDataset(pairs, tok, max_len=16, evidence_lookup={"e-1": "ev text"})
+    item = ds[0]
+    assert int(item["labels"]) == 0
+    assert item["input_ids"].shape[0] <= 16
+
+
+def test_rerank_orders_by_score(tokenizer_and_model):
+    tok, model = tokenizer_and_model
+    candidates = [("e-1", 5.0), ("e-2", 4.0), ("e-3", 3.0)]
+    evidence_lookup = {"e-1": "alpha", "e-2": "beta", "e-3": "gamma"}
+    out = rerank(
+        model,
+        tok,
+        claim_text="q",
+        candidates=candidates,
+        evidence_lookup=evidence_lookup,
+        top_k=2,
+        batch_size=2,
+        device="cpu",
+        max_len=32,
+    )
+    assert len(out) == 2
+    assert all(isinstance(s, float) for _, s in out)
+    assert out[0][1] >= out[1][1]
+
+
+def test_rerank_handles_empty_candidates(tokenizer_and_model):
+    tok, model = tokenizer_and_model
+    out = rerank(
+        model,
+        tok,
+        claim_text="q",
+        candidates=[],
+        evidence_lookup={},
+        top_k=4,
+        device="cpu",
+    )
+    assert out == []
+
+
+def test_save_load_roundtrip_preserves_scores(tmp_path, tokenizer_and_model):
+    """After save+load, the same (claim, evidence) pair must score identically.
+
+    Guards against checkpoint format drift between train and inference.
+    Both models are put in eval() mode so dropout does not introduce noise.
+    """
+    from src.retriever_cross_enc import load_cross_encoder
+
+    tok, model = tokenizer_and_model
+    model.eval()
+    ckpt = tmp_path / "ce.pt"
+    torch.save(model.state_dict(), ckpt)
+
+    _, model2 = load_cross_encoder(TINY_MODEL, ckpt, device="cpu")
+
+    candidates = [("e-1", 1.0)]
+    lookup = {"e-1": "some evidence"}
+    s1 = rerank(model, tok, "claim", candidates, lookup, top_k=1, device="cpu", max_len=32)
+    s2 = rerank(model2, tok, "claim", candidates, lookup, top_k=1, device="cpu", max_len=32)
+    assert abs(s1[0][1] - s2[0][1]) < 1e-5
