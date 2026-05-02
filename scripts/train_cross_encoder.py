@@ -10,7 +10,13 @@ Steps:
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import torch
+
+# Add project root to path so we can import src
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import Config
 from src.data_loader import load_claims, load_evidence
@@ -35,7 +41,26 @@ def pick_device() -> str:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Train BERT cross-encoder reranker.")
+    parser.add_argument(
+        "--resume",
+        metavar="PATH",
+        default=None,
+        help="Resume from a per-epoch checkpoint, e.g. checkpoints/cross_encoder_epoch1.pt",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=None,
+        help="Override cfg.ce_epochs (e.g. --epochs 1 for a quick smoke test)",
+    )
+    args = parser.parse_args()
+
     cfg = Config()
+    if args.epochs is not None:
+        cfg.ce_epochs = args.epochs
     set_seed(cfg.seed)
     device = pick_device()
     log.info("Training on device: %s", device)
@@ -46,7 +71,7 @@ def main() -> None:
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
 
     bm25_cache = cfg.cache_dir / f"bm25_train_top{cfg.hard_negatives_bm25_top_k}.json"
-    backend_tag = "bm25s"  # source-of-truth: src/retriever_bm25.py
+    backend_tag = "bm25s"
 
     bm25_results: dict | None = None
     if bm25_cache.exists():
@@ -102,6 +127,7 @@ def main() -> None:
         epochs=cfg.ce_epochs,
         device=device,
         save_path=cfg.ckpt_dir / "cross_encoder.pt",
+        resume_from=Path(args.resume) if args.resume else None,
     )
 
 
