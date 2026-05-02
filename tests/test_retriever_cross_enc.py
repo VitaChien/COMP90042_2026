@@ -207,7 +207,7 @@ def test_train_saves_epoch_checkpoints(tmp_path, tokenizer_and_model):
     for ep in (1, 2):
         ckpt_path = tmp_path / f"cross_encoder_epoch{ep}.pt"
         assert ckpt_path.exists(), f"epoch {ep} checkpoint missing"
-        ckpt = torch.load(ckpt_path, weights_only=False)
+        ckpt = torch.load(ckpt_path, weights_only=True)
         assert set(ckpt.keys()) == {
             "epoch",
             "model_state_dict",
@@ -244,6 +244,7 @@ def test_resume_starts_from_correct_epoch(tmp_path, tokenizer_and_model):
 
     # Phase 2: fresh model resumes from epoch 1 — only epoch 2 should run
     _, model2 = build_cross_encoder(TINY_MODEL)
+    epoch1_mtime = epoch1_ckpt.stat().st_mtime
     train_cross_encoder(
         model2,
         tok,
@@ -257,7 +258,10 @@ def test_resume_starts_from_correct_epoch(tmp_path, tokenizer_and_model):
         save_path=save_path,
         resume_from=epoch1_ckpt,
     )
+    assert (
+        epoch1_ckpt.stat().st_mtime == epoch1_mtime
+    ), "epoch 1 checkpoint must not be overwritten when resuming from it"
     epoch2_ckpt = tmp_path / "cross_encoder_epoch2.pt"
     assert epoch2_ckpt.exists(), "epoch 2 checkpoint must be created after resume"
-    ckpt2 = torch.load(epoch2_ckpt, weights_only=False)
+    ckpt2 = torch.load(epoch2_ckpt, weights_only=True)
     assert ckpt2["epoch"] == 2

@@ -119,6 +119,9 @@ def train_cross_encoder(
     Pass ``resume_from`` pointing to a per-epoch checkpoint file
     (``cross_encoder_epochN.pt``) to skip already-completed epochs and restore
     optimizer/scheduler state — useful after a Colab disconnect.
+
+    Pass the same ``epochs`` value as the original run when resuming — not
+    the number of remaining epochs — so the LR schedule stays consistent.
     """
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +144,7 @@ def train_cross_encoder(
     if resume_from is not None:
         resume_path = Path(resume_from)
         if resume_path.exists():
-            ckpt = torch.load(resume_path, map_location=device, weights_only=False)
+            ckpt = torch.load(resume_path, map_location=device, weights_only=True)
             model.load_state_dict(ckpt["model_state_dict"])
             opt.load_state_dict(ckpt["optimizer_state_dict"])
             sched.load_state_dict(ckpt["scheduler_state_dict"])
