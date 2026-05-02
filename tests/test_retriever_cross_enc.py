@@ -180,3 +180,84 @@ def test_forward_uses_token_type_ids(tokenizer_and_model):
             token_type_ids=torch.zeros_like(enc["token_type_ids"]),
         ).item()
     assert abs(a - b) > 1e-5, "model is ignoring token_type_ids"
+
+
+def test_train_saves_epoch_checkpoints(tmp_path, tokenizer_and_model):
+    """train_cross_encoder must write cross_encoder_epochN.pt after each epoch
+    containing model, optimizer, and scheduler state dicts plus epoch number."""
+    from src.retriever_cross_enc import train_cross_encoder
+
+    tok, model = tokenizer_and_model
+    pairs = [
+        {"claim_text": "a", "evidence_text": "b", "label": 1},
+        {"claim_text": "c", "evidence_text": "d", "label": 0},
+    ]
+    train_cross_encoder(
+        model,
+        tok,
+        pairs,
+        {},
+        max_len=16,
+        batch_size=2,
+        lr=1e-4,
+        epochs=2,
+        device="cpu",
+        save_path=tmp_path / "ce.pt",
+    )
+    for ep in (1, 2):
+        ckpt_path = tmp_path / f"cross_encoder_epoch{ep}.pt"
+        assert ckpt_path.exists(), f"epoch {ep} checkpoint missing"
+        ckpt = torch.load(ckpt_path, weights_only=False)
+        assert set(ckpt.keys()) == {
+            "epoch",
+            "model_state_dict",
+            "optimizer_state_dict",
+            "scheduler_state_dict",
+        }
+        assert ckpt["epoch"] == ep
+
+
+def test_resume_starts_from_correct_epoch(tmp_path, tokenizer_and_model):
+    """When resume_from points to an epoch-1 checkpoint, only epoch 2 runs
+    and cross_encoder_epoch2.pt is created with epoch==2."""
+    from src.retriever_cross_enc import train_cross_encoder
+
+    tok, model = tokenizer_and_model
+    pairs = [{"claim_text": "a", "evidence_text": "b", "label": 1}]
+    save_path = tmp_path / "ce.pt"
+
+    # Phase 1: train only epoch 1 to produce the resume checkpoint
+    train_cross_encoder(
+        model,
+        tok,
+        pairs,
+        {},
+        max_len=16,
+        batch_size=1,
+        lr=1e-4,
+        epochs=1,
+        device="cpu",
+        save_path=save_path,
+    )
+    epoch1_ckpt = tmp_path / "cross_encoder_epoch1.pt"
+    assert epoch1_ckpt.exists()
+
+    # Phase 2: fresh model resumes from epoch 1 — only epoch 2 should run
+    _, model2 = build_cross_encoder(TINY_MODEL)
+    train_cross_encoder(
+        model2,
+        tok,
+        pairs,
+        {},
+        max_len=16,
+        batch_size=1,
+        lr=1e-4,
+        epochs=2,
+        device="cpu",
+        save_path=save_path,
+        resume_from=epoch1_ckpt,
+    )
+    epoch2_ckpt = tmp_path / "cross_encoder_epoch2.pt"
+    assert epoch2_ckpt.exists(), "epoch 2 checkpoint must be created after resume"
+    ckpt2 = torch.load(epoch2_ckpt, weights_only=False)
+    assert ckpt2["epoch"] == 2

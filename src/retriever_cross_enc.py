@@ -112,8 +112,17 @@ def train_cross_encoder(
     epochs: int,
     device: str,
     save_path: Path | str,
+    resume_from: Path | str | None = None,
 ) -> None:
-    """Fine-tune cross-encoder with BCE on (claim, evidence) pairs."""
+    """Fine-tune cross-encoder with BCE on (claim, evidence) pairs.
+
+    Pass ``resume_from`` pointing to a per-epoch checkpoint file
+    (``cross_encoder_epochN.pt``) to skip already-completed epochs and restore
+    optimizer/scheduler state — useful after a Colab disconnect.
+    """
+    save_path = Path(save_path)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+
     ds = CrossEncoderDataset(
         train_pairs,
         tokenizer,
@@ -128,7 +137,20 @@ def train_cross_encoder(
     sched = get_linear_schedule_with_warmup(opt, int(0.1 * total_steps), total_steps)
     loss_fn = nn.BCEWithLogitsLoss()
 
-    for ep in range(epochs):
+    start_epoch = 0
+    if resume_from is not None:
+        resume_path = Path(resume_from)
+        if resume_path.exists():
+            ckpt = torch.load(resume_path, map_location=device, weights_only=False)
+            model.load_state_dict(ckpt["model_state_dict"])
+            opt.load_state_dict(ckpt["optimizer_state_dict"])
+            sched.load_state_dict(ckpt["scheduler_state_dict"])
+            start_epoch = ckpt["epoch"]
+            log.info("Resumed from %s (completed epochs: %d)", resume_path, start_epoch)
+        else:
+            log.warning("resume_from=%s not found; starting from scratch", resume_from)
+
+    for ep in range(start_epoch, epochs):
         running = 0.0
         for batch in tqdm(loader, desc=f"CE epoch {ep + 1}/{epochs}"):
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -146,8 +168,18 @@ def train_cross_encoder(
             running += loss.item()
         log.info("epoch %d mean_loss=%.4f", ep + 1, running / len(loader))
 
-    save_path = Path(save_path)
-    save_path.parent.mkdir(parents=True, exist_ok=True)
+        epoch_ckpt = save_path.parent / f"cross_encoder_epoch{ep + 1}.pt"
+        torch.save(
+            {
+                "epoch": ep + 1,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": opt.state_dict(),
+                "scheduler_state_dict": sched.state_dict(),
+            },
+            epoch_ckpt,
+        )
+        log.info("Saved epoch checkpoint -> %s", epoch_ckpt)
+
     torch.save(model.state_dict(), save_path)
     log.info("Saved cross-encoder ckpt -> %s", save_path)
 
