@@ -88,3 +88,25 @@ def test_no_duplicate_negatives_per_claim():
     pairs = build_training_pairs(claims, bm25_results, n_neg=4, seed=0)
     neg_pairs = [(p["claim_id"], p["evidence_id"]) for p in pairs if p["label"] == 0]
     assert len(neg_pairs) == len(set(neg_pairs)), f"duplicate negatives emitted: {neg_pairs}"
+
+
+def test_miner_uses_full_pool_when_results_span_200():
+    """Negatives must be sampled from the full 1-200 range, not just 1-50.
+
+    We pass 200 candidates and verify that at least one sampled negative
+    comes from rank > 50 (index >= 50 in the list).  With n_neg=4 and only
+    200 non-gold candidates this is virtually certain given any seed.
+    """
+    gold = ["gold"]
+    # 200 non-gold candidates: n0..n49 are ranks 1-50, n50..n199 are ranks 51-200
+    candidates = [(f"n{i}", float(200 - i)) for i in range(200)]
+    bm25_results = {"c": [("gold", 300.0), *candidates]}
+    claims = {"c": {"claim_text": "q", "evidences": gold}}
+
+    pairs = build_training_pairs(claims, bm25_results, n_neg=4, seed=42)
+    neg_eids = [p["evidence_id"] for p in pairs if p["label"] == 0]
+    assert len(neg_eids) == 4
+    # at least one negative from ranks 51-200 (ids n50..n199)
+    assert any(
+        int(eid[1:]) >= 50 for eid in neg_eids
+    ), f"All negatives came from top-50: {neg_eids}"
