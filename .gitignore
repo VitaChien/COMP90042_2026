@@ -12,3 +12,7 @@ data/evidence.json
 .ruff_cache/
 knowledge/
 .cursor/
+.vscode/
+.claude/
+logs/
+docs/
