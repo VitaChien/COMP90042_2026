@@ -132,7 +132,7 @@ def train_cross_encoder(
         max_len=max_len,
         evidence_lookup=evidence_lookup,
     )
-    loader = DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=2)
+    loader = DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=0)
 
     model.to(device).train()
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
