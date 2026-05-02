@@ -112,3 +112,28 @@ should be the default for Phase 4 tuning.
 - BM25 top-200 inference (production setting): F jumped from 0.082 → **0.1477** (+80% vs buggy, +38% vs M1 BM25-only). The `token_type_ids` fix is the dominant factor: BERT's segment embeddings now correctly distinguish claim vs evidence.
 - BM25 top-50 inference (matching training pool): F=**0.1786**, HM=**0.2072** — the highest score yet, confirming that some distribution mismatch persists at inference-time rank 50-200. Model was trained exclusively on BM25 top-50 hard negatives.
 - The remaining top-50 vs top-200 gap (~0.03 F) suggests the next improvement is either blending BM25 score with CE score at inference, or retraining with a mixed top-50/top-200 hard negative pool.
+
+---
+
+## Phase C retrain: hard negatives from BM25 top-200 pool
+
+**Cross-encoder retraining summary (`bert-base-uncased`, BCE, 2 epochs, batch_size=64):**
+
+- Same 4122 positives + 16488 hard negatives; negatives now sampled uniformly from BM25 top-200 \ gold
+- Epoch 1 mean_loss = 0.3356
+- Epoch 2 mean_loss = **0.1835** (lowest yet; Phase B was 0.2265)
+- BM25 top-200 train cache rebuilt in 3.48s (bm25s); Apple MPS, ~77 min total wall clock
+
+| Setting                                              | F          | A (random) | HM         |
+|------------------------------------------------------|------------|------------|------------|
+| BM25-only k=4 (M1 baseline)                          | 0.1072     | 0.2468     | 0.1495     |
+| BM25 top-200 → CE top-4 (Phase B, top-50 neg pool)   | 0.1477     | 0.2468     | 0.1848     |
+| BM25 top-50  → CE top-4 (Phase B, top-50 neg pool)   | 0.1786     | 0.2468     | 0.2072     |
+| BM25 top-200 → CE top-4 (Phase C, top-200 neg pool)  | **0.2011** | 0.2468     | **0.2216** |
+| BM25 top-50  → CE top-4 (Phase C, top-200 neg pool)  | 0.1891     | 0.2468     | 0.2141     |
+
+**Interpretation:**
+
+- BM25 top-200 (production setting): F=**0.2011**, HM=**0.2216** — best result so far. Phase C top-200 beats Phase B top-200 by +36% (0.1477 → 0.2011).
+- The top-50 vs top-200 gap is **reversed**: Phase C top-200 (0.2011) > Phase C top-50 (0.1891). Training on a wider negative pool has made the model better calibrated for the full 200-candidate pool than for the narrower 50-candidate pool.
+- The distribution mismatch hypothesis is confirmed and resolved: training negatives should match the inference pool size. `hard_negatives_bm25_top_k=200` is the correct production default going forward.
