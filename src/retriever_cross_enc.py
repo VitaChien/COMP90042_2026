@@ -70,30 +70,34 @@ class CrossEncoderDataset(Dataset):
         max_len: int = 256,
         evidence_lookup: dict[str, str] | None = None,
     ) -> None:
-        self.pairs = list(pairs)
-        self.tok = tokenizer
+        lookup = evidence_lookup or {}
         self.max_len = max_len
-        self.lookup = evidence_lookup or {}
-
-    def __len__(self) -> int:
-        return len(self.pairs)
-
-    def __getitem__(self, idx: int) -> dict:
-        p = self.pairs[idx]
-        ev = p.get("evidence_text") or self.lookup[p["evidence_id"]]
-        enc = self.tok(
-            p["claim_text"],
-            ev,
+        # Pre-tokenize once. Avoids re-running the (slow Python-side) tokenizer
+        # on every __getitem__ across epochs and worker processes.
+        claim_texts = [p["claim_text"] for p in pairs]
+        evidence_texts = [p.get("evidence_text") or lookup[p["evidence_id"]] for p in pairs]
+        enc = tokenizer(
+            claim_texts,
+            evidence_texts,
             truncation=True,
-            max_length=self.max_len,
+            max_length=max_len,
             padding="max_length",
             return_tensors="pt",
         )
+        self.input_ids = enc["input_ids"]
+        self.attention_mask = enc["attention_mask"]
+        self.token_type_ids = enc["token_type_ids"]
+        self.labels = torch.tensor([float(p["label"]) for p in pairs], dtype=torch.float32)
+
+    def __len__(self) -> int:
+        return self.input_ids.shape[0]
+
+    def __getitem__(self, idx: int) -> dict:
         return {
-            "input_ids": enc["input_ids"][0],
-            "attention_mask": enc["attention_mask"][0],
-            "token_type_ids": enc["token_type_ids"][0],
-            "labels": torch.tensor(float(p["label"]), dtype=torch.float32),
+            "input_ids": self.input_ids[idx],
+            "attention_mask": self.attention_mask[idx],
+            "token_type_ids": self.token_type_ids[idx],
+            "labels": self.labels[idx],
         }
 
 
