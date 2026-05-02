@@ -62,3 +62,29 @@ def test_build_training_pairs_is_deterministic():
     assert a == b
     c = build_training_pairs(claims, bm25, n_neg=4, seed=43)
     assert c != a  # different seed -> different sample
+
+
+def test_no_duplicate_negatives_per_claim():
+    """For a claim with N gold and only M < N*n_neg unique candidates, the
+    miner must NEVER emit the same (claim, neg_evidence) pair twice. Each
+    duplicate pair would silently inflate that negative's gradient weight."""
+    claims = {
+        "c": {"claim_text": "Q", "evidences": ["g1", "g2", "g3"]},
+    }
+    # Only 4 unique non-gold candidates available
+    bm25_results = {
+        "c": [
+            ("g1", 9.0),
+            ("g2", 8.0),
+            ("g3", 7.0),
+            ("n1", 6.0),
+            ("n2", 5.0),
+            ("n3", 4.0),
+            ("n4", 3.0),
+        ],
+    }
+    # 3 golds * n_neg=4 = 12 negative SLOTS; only 4 unique candidates exist.
+    # The miner must cap at 4 unique negatives, not loop and produce 12.
+    pairs = build_training_pairs(claims, bm25_results, n_neg=4, seed=0)
+    neg_pairs = [(p["claim_id"], p["evidence_id"]) for p in pairs if p["label"] == 0]
+    assert len(neg_pairs) == len(set(neg_pairs)), f"duplicate negatives emitted: {neg_pairs}"

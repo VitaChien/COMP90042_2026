@@ -42,25 +42,16 @@ def build_training_pairs(
         gold_set = set(gold_list)
         bm_hits = bm25_results.get(cid, [])
         candidates = [eid for eid, _ in bm_hits if eid not in gold_set]
+
+        # Sample ALL negatives for this claim in one shot so each candidate
+        # appears at most once. Cap at n_neg * len(gold_list) total slots.
+        target_n_neg = n_neg * len(gold_list)
+        sampled_negs = (
+            rng.sample(candidates, k=min(target_n_neg, len(candidates))) if candidates else []
+        )
+
         for ge in gold_list:
-            pairs.append(
-                {
-                    "claim_id": cid,
-                    "claim_text": ctext,
-                    "evidence_id": ge,
-                    "label": 1,
-                }
-            )
-            if not candidates:
-                continue
-            sampled = rng.sample(candidates, k=min(n_neg, len(candidates)))
-            for ne in sampled:
-                pairs.append(
-                    {
-                        "claim_id": cid,
-                        "claim_text": ctext,
-                        "evidence_id": ne,
-                        "label": 0,
-                    }
-                )
+            pairs.append({"claim_id": cid, "claim_text": ctext, "evidence_id": ge, "label": 1})
+        for ne in sampled_negs:
+            pairs.append({"claim_id": cid, "claim_text": ctext, "evidence_id": ne, "label": 0})
     return pairs
