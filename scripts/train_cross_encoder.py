@@ -10,6 +10,7 @@ Steps:
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import torch
@@ -37,8 +38,6 @@ def pick_device() -> str:
 
 
 def main() -> None:
-    import argparse
-
     parser = argparse.ArgumentParser(description="Train BERT cross-encoder reranker.")
     parser.add_argument(
         "--resume",
