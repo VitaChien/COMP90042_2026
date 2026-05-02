@@ -56,7 +56,9 @@ def run_baseline(claims_path: Path, output_path: Path, top_k: int) -> dict:
     return preds
 
 
-def run_retriever_only(claims_path: Path, output_path: Path, top_k: int) -> dict:
+def run_retriever_only(
+    claims_path: Path, output_path: Path, top_k: int, bm25_top_k: int | None = None
+) -> dict:
     """BM25 top-200 -> cross-encoder rerank top-K. Label still random.
 
     Random label keeps A constant (~0.25) so any movement in F or HM
@@ -67,6 +69,9 @@ def run_retriever_only(claims_path: Path, output_path: Path, top_k: int) -> dict
     set_seed(cfg.seed)
     device = _pick_device()
     log.info("Reranking on device: %s", device)
+
+    effective_bm25_top_k = bm25_top_k if bm25_top_k is not None else cfg.bm25_top_k
+    log.info("BM25 pool size: %d", effective_bm25_top_k)
 
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     ce_tok, ce_model = load_cross_encoder(
@@ -82,7 +87,7 @@ def run_retriever_only(claims_path: Path, output_path: Path, top_k: int) -> dict
     preds: dict[str, dict] = {}
     with timer(f"Retriever pipeline x{len(claims)}", log):
         for cid, claim in tqdm(claims.items(), desc="rerank"):
-            cand = bm25.search(claim.claim_text, top_k=cfg.bm25_top_k)
+            cand = bm25.search(claim.claim_text, top_k=effective_bm25_top_k)
             ranked = rerank(
                 ce_model,
                 ce_tok,
@@ -114,16 +119,23 @@ def main() -> None:
         default="bm25-random",
         help="Phase 4 will add 'full' and 'oracle'.",
     )
+    p.add_argument(
+        "--bm25-top-k",
+        type=int,
+        default=None,
+        help="BM25 pool size (default: Config.bm25_top_k=200)",
+    )
     args = p.parse_args()
 
     cfg = Config()
     claims_path = cfg.dev_path if args.split == "dev" else cfg.test_path
-    output_path = cfg.output_dir / f"{args.split}-{args.mode}-k{args.top_k}.json"
+    bm25_suffix = f"-bm25{args.bm25_top_k}" if args.bm25_top_k is not None else ""
+    output_path = cfg.output_dir / f"{args.split}-{args.mode}-k{args.top_k}{bm25_suffix}.json"
 
     if args.mode == "bm25-random":
         run_baseline(claims_path, output_path, args.top_k)
     elif args.mode == "retriever-only":
-        run_retriever_only(claims_path, output_path, args.top_k)
+        run_retriever_only(claims_path, output_path, args.top_k, bm25_top_k=args.bm25_top_k)
 
     if args.split == "dev":
         m = evaluate_predictions(output_path, cfg.dev_path)

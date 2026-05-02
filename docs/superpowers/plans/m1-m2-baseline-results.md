@@ -88,3 +88,27 @@ should be the default for Phase 4 tuning.
 | BM25 top-200 -> CE top-4 (A3, padding=max_length)    | 0.0821 | 0.2468     | 0.1232 |
 
 **Interpretation:** F is unchanged (0.0821), confirming the prediction: BERT's `attention_mask` makes the model's output invariant to padding length, so aligning `padding="max_length"` in `rerank()` with the training-time dataset is a maintenance/parity fix only — it eliminates a "same preprocessing in both paths?" doubt without affecting scores.
+
+---
+
+## Phase B retrain: all bugs fixed (token_type_ids, hard-neg dedup, BM25 cache stamp, ce_batch_size=64)
+
+**Cross-encoder retraining summary (`bert-base-uncased`, BCE, 2 epochs, batch_size=64):**
+
+- 4122 positives + 16488 hard negatives (4:1) from BM25 top-50 \\ gold (deduped per-claim)
+- Epoch 1 mean_loss = 0.3788
+- Epoch 2 mean_loss = **0.2265** (Plan B target < 0.3 met)
+- Pre-tokenized dataset cache, Apple MPS, ~145 min total wall clock
+
+| Setting                                              | F      | A (random) | HM     |
+|------------------------------------------------------|--------|------------|--------|
+| BM25-only k=4 (M1 baseline)                          | 0.1072 | 0.2468     | 0.1495 |
+| BM25 top-200 -> CE top-4 (M2 buggy)                  | 0.0821 | 0.2468     | 0.1232 |
+| BM25 top-200 -> CE top-4 (Phase B retrain, bugfixed) | 0.1477 | 0.2468     | 0.1848 |
+| BM25 top-50  -> CE top-4 (Phase B retrain, bugfixed) | 0.1786 | 0.2468     | 0.2072 |
+
+**Interpretation:**
+
+- BM25 top-200 inference (production setting): F jumped from 0.082 → **0.1477** (+80% vs buggy, +38% vs M1 BM25-only). The `token_type_ids` fix is the dominant factor: BERT's segment embeddings now correctly distinguish claim vs evidence.
+- BM25 top-50 inference (matching training pool): F=**0.1786**, HM=**0.2072** — the highest score yet, confirming that some distribution mismatch persists at inference-time rank 50-200. Model was trained exclusively on BM25 top-50 hard negatives.
+- The remaining top-50 vs top-200 gap (~0.03 F) suggests the next improvement is either blending BM25 score with CE score at inference, or retraining with a mixed top-50/top-200 hard negative pool.
