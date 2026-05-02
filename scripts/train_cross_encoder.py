@@ -11,7 +11,6 @@ Steps:
 from __future__ import annotations
 
 import torch
-from tqdm import tqdm
 
 from src.config import Config
 from src.data_loader import load_claims, load_evidence
@@ -47,29 +46,30 @@ def main() -> None:
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
 
     bm25_cache = cfg.cache_dir / "bm25_train_top50.json"
+    backend_tag = "bm25s"  # source-of-truth: src/retriever_bm25.py
+
+    bm25_results: dict | None = None
     if bm25_cache.exists():
-        log.info("Loading cached BM25 train top-50 from %s", bm25_cache)
-        bm25_results = load_json(bm25_cache)
-    else:
-        # Single-threaded numpy inside rank_bm25.get_scores; ~1228 calls over a
-        # 1.2M-doc corpus benchmarks at ~1s/call so we surface progress + cache
-        # incrementally to avoid losing work if interrupted.
-        bm25_results = {}
-        partial_cache = cfg.cache_dir / "bm25_train_top50.partial.json"
-        if partial_cache.exists():
-            bm25_results = load_json(partial_cache)
+        cached = load_json(bm25_cache)
+        if isinstance(cached, dict) and cached.get("_backend") == backend_tag:
             log.info(
-                "Resuming BM25 search; %d/%d already cached", len(bm25_results), len(train_claims)
+                "Loading cached BM25 train top-50 (backend=%s) from %s", backend_tag, bm25_cache
             )
+            bm25_results = cached["results"]
+        else:
+            log.warning(
+                "BM25 cache backend mismatch (got %r, expected %r); rebuilding.",
+                cached.get("_backend") if isinstance(cached, dict) else "<legacy>",
+                backend_tag,
+            )
+
+    if bm25_results is None:
         with timer("BM25 search over train split", log):
-            for i, (cid, c) in enumerate(tqdm(train_claims.items(), desc="bm25 train")):
-                if cid in bm25_results:
-                    continue
-                bm25_results[cid] = bm25.search(c.claim_text, top_k=50)
-                if (i + 1) % 200 == 0:
-                    save_json(bm25_results, partial_cache)
-        save_json(bm25_results, bm25_cache)
-        partial_cache.unlink(missing_ok=True)
+            cids = list(train_claims.keys())
+            queries = [train_claims[c].claim_text for c in cids]
+            hits = bm25.search_batch(queries, top_k=50)
+            bm25_results = dict(zip(cids, hits, strict=True))
+        save_json({"_backend": backend_tag, "results": bm25_results}, bm25_cache)
         log.info("Cached BM25 train top-50 -> %s", bm25_cache)
 
     pairs = build_training_pairs(
