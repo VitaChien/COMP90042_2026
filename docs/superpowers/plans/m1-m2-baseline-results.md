@@ -79,3 +79,12 @@ should be the default for Phase 4 tuning.
 | BM25 top-50  -> CE top-4 (Task A2)       | 0.1081 | 0.2468     | 0.1503 |
 
 **Interpretation:** F rose above both the M2 regression baseline (0.0821) and the M1 BM25-only baseline (0.1072), reaching 0.1081, confirming that candidate-pool distribution mismatch (ranks 50-200 being out-of-distribution for the CE) was the dominant cause of the regression and that retraining with a top-200 pool should further improve F.
+
+## Task A3: rerank padding aligned to training (no retraining)
+
+| Setting                                              | F      | A (random) | HM     |
+|------------------------------------------------------|--------|------------|--------|
+| BM25 top-200 -> CE top-4 (M2, padding=True)          | 0.0821 | 0.2468     | 0.1232 |
+| BM25 top-200 -> CE top-4 (A3, padding=max_length)    | 0.0821 | 0.2468     | 0.1232 |
+
+**Interpretation:** F is unchanged (0.0821), confirming the prediction: BERT's `attention_mask` makes the model's output invariant to padding length, so aligning `padding="max_length"` in `rerank()` with the training-time dataset is a maintenance/parity fix only — it eliminates a "same preprocessing in both paths?" doubt without affecting scores.

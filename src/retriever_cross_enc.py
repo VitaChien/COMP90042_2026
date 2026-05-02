@@ -184,7 +184,7 @@ def rerank(
             batch_texts,
             truncation=True,
             max_length=max_len,
-            padding=True,
+            padding="max_length",
             return_tensors="pt",
         ).to(device)
         logits = model(**enc)
