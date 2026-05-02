@@ -45,7 +45,7 @@ def main() -> None:
 
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
 
-    bm25_cache = cfg.cache_dir / "bm25_train_top50.json"
+    bm25_cache = cfg.cache_dir / f"bm25_train_top{cfg.hard_negatives_bm25_top_k}.json"
     backend_tag = "bm25s"  # source-of-truth: src/retriever_bm25.py
 
     bm25_results: dict | None = None
@@ -53,7 +53,10 @@ def main() -> None:
         cached = load_json(bm25_cache)
         if isinstance(cached, dict) and cached.get("_backend") == backend_tag:
             log.info(
-                "Loading cached BM25 train top-50 (backend=%s) from %s", backend_tag, bm25_cache
+                "Loading cached BM25 train top-%d (backend=%s) from %s",
+                cfg.hard_negatives_bm25_top_k,
+                backend_tag,
+                bm25_cache,
             )
             bm25_results = cached["results"]
         else:
@@ -67,10 +70,10 @@ def main() -> None:
         with timer("BM25 search over train split", log):
             cids = list(train_claims.keys())
             queries = [train_claims[c].claim_text for c in cids]
-            hits = bm25.search_batch(queries, top_k=50)
+            hits = bm25.search_batch(queries, top_k=cfg.hard_negatives_bm25_top_k)
             bm25_results = dict(zip(cids, hits, strict=True))
         save_json({"_backend": backend_tag, "results": bm25_results}, bm25_cache)
-        log.info("Cached BM25 train top-50 -> %s", bm25_cache)
+        log.info("Cached BM25 train top-%d -> %s", cfg.hard_negatives_bm25_top_k, bm25_cache)
 
     pairs = build_training_pairs(
         train_claims,
