@@ -10,13 +10,9 @@ Steps:
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import torch
-
-# Add project root to path so we can import src
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import Config
 from src.data_loader import load_claims, load_evidence
@@ -53,6 +49,7 @@ def main() -> None:
     parser.add_argument(
         "--epochs",
         type=int,
+        metavar="N",
         default=None,
         help="Override cfg.ce_epochs (e.g. --epochs 1 for a quick smoke test)",
     )
