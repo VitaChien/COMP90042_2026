@@ -37,13 +37,14 @@ def evaluate_predictions(
         per_class_correct[gold_inst["claim_label"]] += int(is_correct)
         confusion[gold_inst["claim_label"]][p["claim_label"]] += 1
 
-        retrieved = set(p.get("evidences") or [])
+        retrieved_list = list(p.get("evidences") or [])
+        retrieved_set = set(retrieved_list)
         gold_ev = gold_inst["evidences"]
-        if retrieved and gold_ev:
-            tp = sum(1 for g in gold_ev if g in retrieved)
+        if retrieved_list and gold_ev:
+            tp = sum(1 for g in gold_ev if g in retrieved_set)
             if tp > 0:
                 recall = tp / len(gold_ev)
-                precision = tp / len(retrieved)
+                precision = tp / len(retrieved_list)  # match official eval.py
                 f = 2 * precision * recall / (precision + recall)
             else:
                 f = 0.0
