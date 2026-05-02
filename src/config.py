@@ -29,7 +29,7 @@ class Config:
     ce_max_len: int = 256
     ce_lr: float = 2e-5
     ce_epochs: int = 2
-    ce_batch_size: int = 32
+    ce_batch_size: int = 64
 
     # classifier
     classifier_model: str = "roberta-base"
