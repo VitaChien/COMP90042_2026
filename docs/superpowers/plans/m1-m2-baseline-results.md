@@ -69,3 +69,13 @@ should be the default for Phase 4 tuning.
 - Dev retriever-only F unchanged: 0.0821 (different top-200 ordering between
   the two BM25s, but the cross-encoder converges on the same top-4
   candidates regardless). bm25s switch is a pure speed win.
+
+## Task A2 experiment: narrow CE candidate pool to BM25 top-50 (no retraining)
+
+| Setting                                  | F      | A (random) | HM     |
+|------------------------------------------|--------|------------|--------|
+| BM25-only k=4 (M1 baseline)              | 0.1072 | 0.2468     | 0.1495 |
+| BM25 top-200 -> CE top-4 (M2 baseline)   | 0.0821 | 0.2468     | 0.1232 |
+| BM25 top-50  -> CE top-4 (Task A2)       | 0.1081 | 0.2468     | 0.1503 |
+
+**Interpretation:** F rose above both the M2 regression baseline (0.0821) and the M1 BM25-only baseline (0.1072), reaching 0.1081, confirming that candidate-pool distribution mismatch (ranks 50-200 being out-of-distribution for the CE) was the dominant cause of the regression and that retraining with a top-200 pool should further improve F.
