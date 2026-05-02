@@ -23,6 +23,7 @@ class Config:
     bm25_top_k: int = 200
     final_top_k: int = 4
     hard_negatives_per_pos: int = 4
+    hard_negatives_bm25_top_k: int = 200
 
     # cross-encoder
     cross_encoder_model: str = "bert-base-uncased"

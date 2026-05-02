@@ -15,3 +15,8 @@ def test_config_paths_are_resolved_to_repo():
     cfg = Config()
     assert cfg.repo_root.is_absolute()
     assert cfg.data_dir.name == "data"
+
+
+def test_config_hard_neg_bm25_pool_default():
+    cfg = Config()
+    assert cfg.hard_negatives_bm25_top_k == 200
