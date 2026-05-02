@@ -45,8 +45,12 @@ class CrossEncoderHead(nn.Module):
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(hidden, 1)
 
-    def forward(self, input_ids, attention_mask, **_kwargs):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+    def forward(self, input_ids, attention_mask, token_type_ids=None, **_kwargs):
+        out = self.encoder(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+        )
         cls = out.last_hidden_state[:, 0]
         return self.classifier(self.dropout(cls)).squeeze(-1)
 
@@ -88,6 +92,7 @@ class CrossEncoderDataset(Dataset):
         return {
             "input_ids": enc["input_ids"][0],
             "attention_mask": enc["attention_mask"][0],
+            "token_type_ids": enc["token_type_ids"][0],
             "labels": torch.tensor(float(p["label"]), dtype=torch.float32),
         }
 
@@ -126,6 +131,7 @@ def train_cross_encoder(
             logits = model(
                 input_ids=batch["input_ids"],
                 attention_mask=batch["attention_mask"],
+                token_type_ids=batch["token_type_ids"],
             )
             loss = loss_fn(logits, batch["labels"])
             opt.zero_grad()

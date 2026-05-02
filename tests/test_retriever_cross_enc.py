@@ -137,3 +137,46 @@ def test_train_and_rerank_produce_identical_logit(tokenizer_and_model):
     assert (
         abs(train_score - rerank_score) < 1e-5
     ), f"train vs rerank logit drift: train={train_score:.6f} rerank={rerank_score:.6f}"
+
+
+def test_dataset_yields_token_type_ids(tokenizer_and_model):
+    """Dataset MUST emit token_type_ids so BERT can use segment embeddings.
+
+    With segment IDs absent, BertModel falls back to all-zeros and the
+    pretrained NSP-trained sentence-pair signal is wasted.
+    """
+    tok, _ = tokenizer_and_model
+    pairs = [{"claim_text": "claim", "evidence_text": "ev", "label": 1}]
+    ds = CrossEncoderDataset(pairs, tok, max_len=32)
+    item = ds[0]
+    assert "token_type_ids" in item
+    # claim half should be 0, evidence half should be 1, padding (after [SEP]) is 0
+    tt = item["token_type_ids"]
+    assert (tt == 1).any(), "evidence half must have token_type_id=1"
+
+
+def test_forward_uses_token_type_ids(tokenizer_and_model):
+    """Different segment assignments must produce different logits (proves
+    the encoder actually consumes token_type_ids)."""
+    tok, model = tokenizer_and_model
+    model.eval()
+    enc = tok(
+        "claim text",
+        "evidence text",
+        return_tensors="pt",
+        padding="max_length",
+        max_length=32,
+        truncation=True,
+    )
+    with torch.no_grad():
+        a = model(
+            input_ids=enc["input_ids"],
+            attention_mask=enc["attention_mask"],
+            token_type_ids=enc["token_type_ids"],
+        ).item()
+        b = model(
+            input_ids=enc["input_ids"],
+            attention_mask=enc["attention_mask"],
+            token_type_ids=torch.zeros_like(enc["token_type_ids"]),
+        ).item()
+    assert abs(a - b) > 1e-5, "model is ignoring token_type_ids"
