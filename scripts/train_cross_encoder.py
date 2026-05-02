@@ -2,7 +2,7 @@
 
 Steps:
 1. Load train claims + BM25 index (built in M1).
-2. Run BM25 top-50 retrieval over train (cached to JSON for re-use).
+2. Run BM25 top-200 retrieval over train (cached to JSON for re-use).
 3. Build (claim, gold) positives + (claim, BM25 top-N \\ gold) hard negatives.
 4. Fine-tune cross-encoder with BCE for ``cfg.ce_epochs`` epochs.
 5. Save checkpoint to ``checkpoints/cross_encoder.pt``.
