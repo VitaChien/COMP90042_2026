@@ -59,6 +59,9 @@ _TOKEN_RE = re.compile(r"[a-z0-9]+")
 # Data justification (counts in evidence.json):
 #   "CO2": 472 docs, "carbon dioxide": 967 docs, overlap only 42.
 #   Same asymmetry holds for CH4/methane, N2O/nitrous oxide, H2O/water, GHG/greenhouse gas.
+# Expansion is intentionally one-directional: abbreviation tokens gain the
+# spelled-out tokens, but not vice versa, because the data shows abbreviations
+# are the sparse side (e.g. CO2 in 472 docs vs carbon dioxide in 967).
 SYNONYM_MAP: dict[str, tuple[str, ...]] = {
     "co2": ("carbon", "dioxide"),
     "ch4": ("methane",),

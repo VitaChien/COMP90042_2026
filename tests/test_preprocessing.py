@@ -37,6 +37,26 @@ def test_synonym_expansion_ch4():
     assert "methan" in out  # 'methane' stems to 'methan'
 
 
+def test_synonym_expansion_n2o():
+    out = tokenize_for_bm25("N2O concentrations")
+    assert "n2o" in out
+    assert "nitrous" in out
+    assert "oxid" in out  # 'oxide' stems to 'oxid'
+
+
+def test_synonym_expansion_h2o():
+    out = tokenize_for_bm25("H2O cycles")
+    assert "h2o" in out
+    assert "water" in out
+
+
+def test_synonym_expansion_ghg():
+    out = tokenize_for_bm25("GHG targets")
+    assert "ghg" in out
+    assert "greenhous" in out  # 'greenhouse' stems to 'greenhous'
+    assert "gas" in out
+
+
 def test_synonym_map_covers_target_abbreviations():
     # Sanity: regression check that the map still includes the high-value
     # climate abbreviations the data analysis flagged.
