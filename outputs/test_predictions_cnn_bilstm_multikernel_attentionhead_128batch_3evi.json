@@ -1,0 +1,1379 @@
+{
+  "claim-2967": {
+    "claim_text": "The contribution of waste heat to the global climate is 0.028 W/m2.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-308923",
+      "evidence-540292",
+      "evidence-403673"
+    ]
+  },
+  "claim-979": {
+    "claim_text": "\u201cWarm weather worsened the most recent five-year drought, which included the driest four-year period on record in terms of statewide precipitation.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-457045",
+      "evidence-178433",
+      "evidence-1023411"
+    ]
+  },
+  "claim-1609": {
+    "claim_text": "Greenland has only lost a tiny fraction of its ice mass.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-52981",
+      "evidence-264761",
+      "evidence-44751"
+    ]
+  },
+  "claim-1020": {
+    "claim_text": "\u201cThe global reef crisis does not necessarily mean extinction for coral species.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-930563",
+      "evidence-647256",
+      "evidence-406279"
+    ]
+  },
+  "claim-2599": {
+    "claim_text": "Small amounts of very active substances can cause large effects.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1144540",
+      "evidence-1029751",
+      "evidence-15630"
+    ]
+  },
+  "claim-2110": {
+    "claim_text": "They changed the name from 'global warming' to 'climate change'",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-506460",
+      "evidence-533511",
+      "evidence-695091"
+    ]
+  },
+  "claim-1135": {
+    "claim_text": "Scientists confirm a mass bleaching event on the Great Barrier Reef this year has killed more corals than ever before, with more than two thirds destroyed across large swathes of the biodiverse site.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-670186",
+      "evidence-47505",
+      "evidence-1028378"
+    ]
+  },
+  "claim-712": {
+    "claim_text": "\u201cInstead of a three-foot increase in ocean levels by the end of the century, six feet was more likely, according to DeConto and Pollard\u2019s findings.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-502244",
+      "evidence-636423",
+      "evidence-1204084"
+    ]
+  },
+  "claim-1307": {
+    "claim_text": "a new study by scientists at the Australian Research Council finds that the ongoing bleaching event is mainly due to human-caused global warming, and that if global warming proceeds as currently expected, \u201clarge parts\u201d of the Great Barrier Reef could die by the mid-2030s.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-287127",
+      "evidence-183385",
+      "evidence-95039"
+    ]
+  },
+  "claim-148": {
+    "claim_text": "Previous IPCC reports tended to assume that clouds would have a neutral impact because the warming and cooling feedbacks would cancel each other out.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-372893",
+      "evidence-1029618",
+      "evidence-37274"
+    ]
+  },
+  "claim-903": {
+    "claim_text": "Growers regularly pump CO2 into greenhouses, raising levels to three times that of the natural environment, to produce stronger, greener, healthier plants.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-12425",
+      "evidence-561302",
+      "evidence-152933"
+    ]
+  },
+  "claim-2942": {
+    "claim_text": "It\u2019s usually taken to be the fact that as carbon dioxide concentrations in the atmosphere increase, the 1 per cent of CO2 that\u2019s the heavier carbon isotope ratio c13 declines in proportion.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1196885",
+      "evidence-356854",
+      "evidence-322110"
+    ]
+  },
+  "claim-1001": {
+    "claim_text": "\u2018This study goes beyond statistical correlations and explores a specific process that can plausibly explain how enhanced high-latitude warming trends may trigger remote weather impacts,\u2019 he said.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1091550",
+      "evidence-352729",
+      "evidence-940688"
+    ]
+  },
+  "claim-1034": {
+    "claim_text": "Your odds of correctly guessing the outcome of a flipped coin are 1 in 2, but your odds of guessing correctly twice in a row are only 1 in 4 \u2014",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-931168",
+      "evidence-572246",
+      "evidence-216758"
+    ]
+  },
+  "claim-1009": {
+    "claim_text": "\u2018Arctic ice conditions have been tracking at record low conditions since October, persisting for six consecutive months\u2019",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-849393",
+      "evidence-961697",
+      "evidence-1172097"
+    ]
+  },
+  "claim-770": {
+    "claim_text": "[CO2] has increased 43 percent above the pre-industrial level so far",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-843608",
+      "evidence-861762",
+      "evidence-1005062"
+    ]
+  },
+  "claim-3074": {
+    "claim_text": "Fourth Assessment Report (AR4), in which the likely range is given as 2.0\u00b0C to 4.5\u00b0C, with a best estimate of 3.0\u00b0C\" (Pat Michaels)",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-87489",
+      "evidence-920160",
+      "evidence-363579"
+    ]
+  },
+  "claim-1761": {
+    "claim_text": "Multiple lines of evidence make it very clear that the rise in atmospheric CO2 is due to human emissions.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-823476",
+      "evidence-220020",
+      "evidence-699212"
+    ]
+  },
+  "claim-1475": {
+    "claim_text": "More than 500 scientists and professionals in climate and related fields have sent a 'European Climate Declaration' to the Secretary-General of the United Nations.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-847567",
+      "evidence-507355",
+      "evidence-221164"
+    ]
+  },
+  "claim-477": {
+    "claim_text": "Scientists say halting deforestation \u2018just as urgent\u2019 as reducing emissions",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-149257",
+      "evidence-1110186",
+      "evidence-551241"
+    ]
+  },
+  "claim-1378": {
+    "claim_text": "Antarctica is gaining land-based ice, according to a new study by NASA scientists published in the Journal of Glaciology",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-529248",
+      "evidence-1033297",
+      "evidence-851726"
+    ]
+  },
+  "claim-503": {
+    "claim_text": "\u201cDuring the sunless winter, a heatwave raised concerns that the polar vortex may be eroding.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-760329",
+      "evidence-7898",
+      "evidence-765547"
+    ]
+  },
+  "claim-2751": {
+    "claim_text": "The argument that solving the global warming problem by reducing human greenhouse gas emissions is \"too hard\" generally stems from the belief that (i) our technology is not sufficiently advanced to achieve significant emissions reductions,",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-273182",
+      "evidence-130492",
+      "evidence-18613"
+    ]
+  },
+  "claim-2575": {
+    "claim_text": "Over the last 30-40 years 80% of coral in the Caribbean have been destroyed and 50% in Indonesia and the Pacific.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-821535",
+      "evidence-406279",
+      "evidence-793956"
+    ]
+  },
+  "claim-30": {
+    "claim_text": "the bushfires [in Australia] were caused by arsonists and a series of lightning strikes, not 'climate change'",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-780092",
+      "evidence-968437",
+      "evidence-1069910"
+    ]
+  },
+  "claim-2994": {
+    "claim_text": "'Mauna Loa has been producing a readout which supports Manning's predetermined goal by showing steady growth in atmospheric CO2 concentrations since 1959.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-386428",
+      "evidence-845045",
+      "evidence-955425"
+    ]
+  },
+  "claim-55": {
+    "claim_text": "[T]he raw data, the actual thermometer data[...] shows that the US has been cooling for 80 to 90 years.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-888195",
+      "evidence-471767",
+      "evidence-603115"
+    ]
+  },
+  "claim-1271": {
+    "claim_text": "Greenland ice sheet \u2026 would balloon sea levels by around 7m should it disintegrate",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-173281",
+      "evidence-1040612",
+      "evidence-552239"
+    ]
+  },
+  "claim-2248": {
+    "claim_text": "Climate sensitivity can be calculated empirically by comparing past temperature change to natural forcings at the time.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-78884",
+      "evidence-564968",
+      "evidence-1114252"
+    ]
+  },
+  "claim-532": {
+    "claim_text": "Never mind that the emissions of carbon dioxide to make and maintain a wind or solar industrial complex are far greater than they will ever save.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-358594",
+      "evidence-457668",
+      "evidence-438554"
+    ]
+  },
+  "claim-556": {
+    "claim_text": "The April low temperatures here are now about 6 degrees Fahrenheit warmer than they used to be.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-735771",
+      "evidence-175804",
+      "evidence-622225"
+    ]
+  },
+  "claim-1173": {
+    "claim_text": "[\u2026]until we develop a practical, cost-competitive alternative to fossil fuels, it is unlikely that renewable energy will ever make up more than 15-20% of global energy requirements.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-70779",
+      "evidence-840842",
+      "evidence-730754"
+    ]
+  },
+  "claim-539": {
+    "claim_text": "We note that the Earth has never in its history had a quasi-stable state that is around 2C warmer than the preindustrial and suggest that there is substantial risk that the system, itself, will \u2018want\u2019 to continue warming because of all of these other processes \u2013 even if we stop emissions,\u201d she said.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-953997",
+      "evidence-728409",
+      "evidence-1031669"
+    ]
+  },
+  "claim-893": {
+    "claim_text": "While France and other G7 countries lamented the U.S. exit from the Paris climate accord, America\u2019s air is already cleaner than that of any other country in the G7, except Canada with its scant population.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-680004",
+      "evidence-370127",
+      "evidence-242835"
+    ]
+  },
+  "claim-2857": {
+    "claim_text": "Weather is chaotic because air is light, it has low friction and viscosity, it expands strongly when in contact with hot surfaces and it conducts heat poorly.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-391628",
+      "evidence-393528",
+      "evidence-316128"
+    ]
+  },
+  "claim-109": {
+    "claim_text": "Local and regional sea levels continue to exhibit typical natural variability\u2014in some places rising and in others falling.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-880315",
+      "evidence-509085",
+      "evidence-184561"
+    ]
+  },
+  "claim-2476": {
+    "claim_text": "The global dimming trend reversed around 1990 - 15 years after the global warming trend began in the mid 1970's.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-513478",
+      "evidence-633190",
+      "evidence-1076601"
+    ]
+  },
+  "claim-3038": {
+    "claim_text": "Clearly, other factors besides atmospheric carbon influence earth temperatures and global warming.\"",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-451455",
+      "evidence-326733",
+      "evidence-635378"
+    ]
+  },
+  "claim-3127": {
+    "claim_text": "\"Skeptics hope that Postma\u2019s alternative thermal model will lead  to the birth of a new climatology, one that actually follows the laws of  physics and properly physical modeling techniques...",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-596032",
+      "evidence-1068590",
+      "evidence-1043842"
+    ]
+  },
+  "claim-474": {
+    "claim_text": "Sea ice continued its declining trend, both in the Arctic and Antarctic.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1172097",
+      "evidence-559069",
+      "evidence-360300"
+    ]
+  },
+  "claim-2464": {
+    "claim_text": "While natural forcings can account for much of the early 20th Century warming, humans played a role as well.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-8189",
+      "evidence-312377",
+      "evidence-1975"
+    ]
+  },
+  "claim-2427": {
+    "claim_text": "By that time CO2 emissions had already risen from the expanded use  of coal that had powered the industrial revolution, and emissions only  increased slowly from 3.5gigatonnes in 1910 to under 4gigatonnes by the  end of the Second World War.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-843608",
+      "evidence-931737",
+      "evidence-450220"
+    ]
+  },
+  "claim-2167": {
+    "claim_text": "Royal Society embraces skepticism",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-204677",
+      "evidence-972760",
+      "evidence-1054525"
+    ]
+  },
+  "claim-812": {
+    "claim_text": "The human contribution can be up to 30 percent or so of the total rainfall coming out of the storm",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-59624",
+      "evidence-1100610",
+      "evidence-21552"
+    ]
+  },
+  "claim-2590": {
+    "claim_text": "This argument originates from Angstrom's work in 1901.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1071743",
+      "evidence-317302",
+      "evidence-99984"
+    ]
+  },
+  "claim-404": {
+    "claim_text": "Actual weather records over the past 100 years show no correlation between rising carbon dioxide levels and local temperatures.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1020318",
+      "evidence-1104594",
+      "evidence-657789"
+    ]
+  },
+  "claim-2977": {
+    "claim_text": "According to the study, as carbon levels have risen, the cold air at high altitudes over the tropics has actually grown colder.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-333748",
+      "evidence-1080820",
+      "evidence-427368"
+    ]
+  },
+  "claim-2673": {
+    "claim_text": "They changed the name from \u201cglobal warming\u201d to \u201cclimate change\u201d after the term global warming just wasn\u2019t working (it was too cold)!",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-506460",
+      "evidence-533511",
+      "evidence-939647"
+    ]
+  },
+  "claim-2509": {
+    "claim_text": "In 1905, PDO switched to a warm phase.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-667390",
+      "evidence-84969",
+      "evidence-984887"
+    ]
+  },
+  "claim-138": {
+    "claim_text": "As a result, half of the people surveyed around the world last year said they thought climate change would make humanity extinct.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-555986",
+      "evidence-1157800",
+      "evidence-346869"
+    ]
+  },
+  "claim-952": {
+    "claim_text": "The Alaskan tundra is warming so quickly it has become a net emitter of carbon dioxide ahead of schedule, a new study finds",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1099844",
+      "evidence-5732",
+      "evidence-779263"
+    ]
+  },
+  "claim-1691": {
+    "claim_text": "Sea level rise is now increasing faster than predicted due to unexpectedly rapid ice melting.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-665226",
+      "evidence-57975",
+      "evidence-59240"
+    ]
+  },
+  "claim-1741": {
+    "claim_text": "Volcanoes have had no warming effect in recent global warming - if anything, a cooling effect.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-389165",
+      "evidence-185243",
+      "evidence-453529"
+    ]
+  },
+  "claim-1202": {
+    "claim_text": "\u00a0The discrepancy between model-predicted warming and (lower) real-world observations has inspired new respect for natural climate variability relative to greenhouse-gas forcing.\u00a0",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-411911",
+      "evidence-1113043",
+      "evidence-774035"
+    ]
+  },
+  "claim-1028": {
+    "claim_text": "A second coat of paint has much less of an effect, while adding a third or fourth coat has almost no impact at all.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1177187",
+      "evidence-1140883",
+      "evidence-644769"
+    ]
+  },
+  "claim-28": {
+    "claim_text": "Volcanoes Melting West Antarctic Glaciers, Not Global Warming",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-797505",
+      "evidence-975870",
+      "evidence-1114420"
+    ]
+  },
+  "claim-275": {
+    "claim_text": "until temperature increases began to slow down after 1998 and remained relatively stable for a period of 15 years",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1042452",
+      "evidence-544804",
+      "evidence-129871"
+    ]
+  },
+  "claim-350": {
+    "claim_text": "Since 1965, more parts of the U.S. have seen a decrease in flooding than have seen an increase.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-990320",
+      "evidence-658407",
+      "evidence-617271"
+    ]
+  },
+  "claim-2204": {
+    "claim_text": "All the indicators show that global warming is still happening.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-691304",
+      "evidence-114562",
+      "evidence-303359"
+    ]
+  },
+  "claim-1604": {
+    "claim_text": "CO2 increase is natural, not human-caused.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-916975",
+      "evidence-406857",
+      "evidence-196937"
+    ]
+  },
+  "claim-3119": {
+    "claim_text": "CO2 constitutes 80% of the non-condensing greenhouse gas forcing.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-853089",
+      "evidence-295594",
+      "evidence-453635"
+    ]
+  },
+  "claim-2150": {
+    "claim_text": "Adapting to global warming is cheaper than preventing it",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-625861",
+      "evidence-960067",
+      "evidence-1154637"
+    ]
+  },
+  "claim-21": {
+    "claim_text": "Sea level rise has been slow and a constant, pre-dating industrialization",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-520022",
+      "evidence-988277",
+      "evidence-1192617"
+    ]
+  },
+  "claim-2013": {
+    "claim_text": "U.S. Sen. Ron Johnson voted to let oil and gas companies emit \"unlimited carbon pollution into our air\"",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-73088",
+      "evidence-1089970",
+      "evidence-276697"
+    ]
+  },
+  "claim-467": {
+    "claim_text": "This is the South Pole ice, 90% of Earth\u2019s ice, and it\u2019s getting thicker.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-867519",
+      "evidence-1181544",
+      "evidence-953605"
+    ]
+  },
+  "claim-2754": {
+    "claim_text": "\"There are many urgent priorities that need the attention of Congress, and it is not for me as an invited guest in your country to say what they are.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-870760",
+      "evidence-289796",
+      "evidence-396541"
+    ]
+  },
+  "claim-2797": {
+    "claim_text": "Global brightening is caused by changes in cloud cover, reflective aerosols and absorbing aerosols.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-753457",
+      "evidence-633190",
+      "evidence-632077"
+    ]
+  },
+  "claim-1771": {
+    "claim_text": "Peer-reviewed research, physics, and math all tell us that a grand solar minimum would have no more than a 0.3\u00b0C cooling effect, barely enough to put a dent in human-caused global warming.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-295833",
+      "evidence-274440",
+      "evidence-488391"
+    ]
+  },
+  "claim-1908": {
+    "claim_text": "In reality, gas produced by fracking is worse for the climate than coal.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-487317",
+      "evidence-982796",
+      "evidence-1065464"
+    ]
+  },
+  "claim-2000": {
+    "claim_text": "There is not a single candidate in the Republican primary that thinks we should do anything about climate change.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-750645",
+      "evidence-1053082",
+      "evidence-530108"
+    ]
+  },
+  "claim-2084": {
+    "claim_text": "Hurricanes aren't linked to global warming",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-533052",
+      "evidence-680558",
+      "evidence-604477"
+    ]
+  },
+  "claim-1237": {
+    "claim_text": "the last sea-level high point, \u2026 occurred between the last two ice ages, about 125,000 years ago.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-352802",
+      "evidence-915752",
+      "evidence-74778"
+    ]
+  },
+  "claim-400": {
+    "claim_text": "The idea that climate change is producing heat records across the Earth is among the most egregious manipulations of data in the absurd global warming debate.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-880073",
+      "evidence-1202437",
+      "evidence-298"
+    ]
+  },
+  "claim-1508": {
+    "claim_text": "global warming ceased around the end of the twentieth century and was followed (since 1997) by 19 years of stable temperature.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-118589",
+      "evidence-846475",
+      "evidence-770232"
+    ]
+  },
+  "claim-520": {
+    "claim_text": "Just 1.25 per cent of the carbon dioxide in the atmosphere-ocean system has been released by \u00adhumans in the past 250 years.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-620559",
+      "evidence-902582",
+      "evidence-1118522"
+    ]
+  },
+  "claim-3064": {
+    "claim_text": "No warming since at least 1995, no melting glaciers and now no rising sea levels.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-185243",
+      "evidence-1056186",
+      "evidence-653981"
+    ]
+  },
+  "claim-1588": {
+    "claim_text": "Melting ice isn't warming the Arctic.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-453529",
+      "evidence-1043067",
+      "evidence-747315"
+    ]
+  },
+  "claim-1488": {
+    "claim_text": "New Study Confirms EVs Considerably Worse For Climate Than Diesel Cars.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-258297",
+      "evidence-765914",
+      "evidence-760483"
+    ]
+  },
+  "claim-2733": {
+    "claim_text": "A number of independent studies using near-global satellite data find positive feedback and high climate sensitivity.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-223495",
+      "evidence-964047",
+      "evidence-26359"
+    ]
+  },
+  "claim-809": {
+    "claim_text": "In the early 20th century, state and federal governments began aggressively fighting wildfires and trying to keep them as small as possible.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1147445",
+      "evidence-639435",
+      "evidence-990509"
+    ]
+  },
+  "claim-763": {
+    "claim_text": "And some plants \u2013 like algae which use carbon for photosynthesis \u2013 may even benefit.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-249987",
+      "evidence-1050345",
+      "evidence-515579"
+    ]
+  },
+  "claim-454": {
+    "claim_text": "Man-made greenhouse gases play only an insignificant role.\u201d",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-273543",
+      "evidence-868081",
+      "evidence-521885"
+    ]
+  },
+  "claim-1853": {
+    "claim_text": "Barack Obama supports proposals \"to devote billions of dollars annually to state game and fish agencies and federal land management agencies to help them ensure that fish and wildlife survive the impacts of climate change.\"",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-595617",
+      "evidence-237611",
+      "evidence-944465"
+    ]
+  },
+  "claim-2838": {
+    "claim_text": "The data is being reported by the University of Illinois's Arctic Climate Research Center, and is derived from satellite observations of the Northern and Southern hemisphere polar regions (Daily Tech).",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1172796",
+      "evidence-981008",
+      "evidence-645981"
+    ]
+  },
+  "claim-2028": {
+    "claim_text": "cutting speed limits could slow climate change",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-91685",
+      "evidence-121187",
+      "evidence-190653"
+    ]
+  },
+  "claim-2434": {
+    "claim_text": "The IPCC blames human emissions of carbon dioxide for the last  warming.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-874622",
+      "evidence-1027012",
+      "evidence-675527"
+    ]
+  },
+  "claim-298": {
+    "claim_text": "Only very few peer-reviewed papers even go so far as to say that recent warming is chiefly anthropogenic.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-198157",
+      "evidence-899905",
+      "evidence-13780"
+    ]
+  },
+  "claim-338": {
+    "claim_text": "Rapid assessment of average temperatures in France between 26-28 June showed a \u201csubstantial\u201d increase in the likelihood of the heatwave happening as a result of human-caused global warming, experts at the World Weather Attribution group said.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-529985",
+      "evidence-510852",
+      "evidence-698828"
+    ]
+  },
+  "claim-1672": {
+    "claim_text": "Global temperature is still rising and 2010 was the hottest recorded.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-430060",
+      "evidence-118792",
+      "evidence-532405"
+    ]
+  },
+  "claim-2840": {
+    "claim_text": "Arctic sea ice is also falling at an accelerated rate.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-589546",
+      "evidence-559069",
+      "evidence-903119"
+    ]
+  },
+  "claim-1425": {
+    "claim_text": "Each year sees the disappearance of thousands of plant and animal species which we will never know, which our children will never see, because they have been lost for ever.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-38178",
+      "evidence-1134540",
+      "evidence-1055022"
+    ]
+  },
+  "claim-1985": {
+    "claim_text": "The North Pole is melting \"a bit\" but the South Pole is getting bigger.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1181035",
+      "evidence-1192872",
+      "evidence-1051569"
+    ]
+  },
+  "claim-1156": {
+    "claim_text": "The costs of emissions regulations, which will be paid by everyone, will be punishingly high and will provide no benefits to most people anywhere in the world.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-148798",
+      "evidence-769271",
+      "evidence-1156371"
+    ]
+  },
+  "claim-2870": {
+    "claim_text": "Ironically, it's those who are mispresenting Hulme's paper that are the ones being misleading.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-646867",
+      "evidence-903884",
+      "evidence-408328"
+    ]
+  },
+  "claim-2898": {
+    "claim_text": "The report suggests significantly smaller overall  ice-mass losses than previous estimates.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-175787",
+      "evidence-363960",
+      "evidence-1099128"
+    ]
+  },
+  "claim-2329": {
+    "claim_text": "We know the Northwest Passage had been open before.\"",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-956029",
+      "evidence-699759",
+      "evidence-1017927"
+    ]
+  },
+  "claim-1998": {
+    "claim_text": "There is a link between climate change and the NSW bushfires.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-776089",
+      "evidence-1069910",
+      "evidence-271936"
+    ]
+  },
+  "claim-2209": {
+    "claim_text": "Surface temperatures can show short-term cooling when heat is exchanged between the atmosphere and the ocean, which has a much greater heat capacity than the air.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-322950",
+      "evidence-123688",
+      "evidence-225290"
+    ]
+  },
+  "claim-1582": {
+    "claim_text": "Tuvalu sea level isn't rising.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1133838",
+      "evidence-136458",
+      "evidence-485236"
+    ]
+  },
+  "claim-3072": {
+    "claim_text": "\"a paper...in Science magazine concludes that the climate sensitivity\u2014how much the earth\u2019s average temperature will rise as a result of a doubling of the atmospheric concentration of carbon dioxide\u2014likely (that is, with a 66% probability) lies in the range 1.7\u00b0C to 2.6\u00b0C, with a median value of 2.3\u00b0C.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-223619",
+      "evidence-616168",
+      "evidence-1049371"
+    ]
+  },
+  "claim-381": {
+    "claim_text": "[subsidies for wind and solar] add to emissions because coal-fired elec\u00adtricity needs to be on standby for when there is no wind or sunshine.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-556023",
+      "evidence-169211",
+      "evidence-812013"
+    ]
+  },
+  "claim-398": {
+    "claim_text": "nothing we can do to stop the Earth\u2019s naturally occurring climate cycles.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-960067",
+      "evidence-198943",
+      "evidence-151235"
+    ]
+  },
+  "claim-1560": {
+    "claim_text": "Sea level rise predictions are exaggerated.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-274803",
+      "evidence-447033",
+      "evidence-57975"
+    ]
+  },
+  "claim-2246": {
+    "claim_text": "\"His [Dr Spencer's] latest research demonstrates that \u2013 in the short term, at any rate \u2013  the temperature feedbacks that the IPCC imagines will greatly amplify  any initial warming caused by CO2 are net-negative, attenuating the  warming they are supposed to enhance.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-936703",
+      "evidence-1111236",
+      "evidence-540667"
+    ]
+  },
+  "claim-2774": {
+    "claim_text": "Actual reconstructions \"diverge\" from the instrumental series in the last part of 20th century.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-802353",
+      "evidence-646959",
+      "evidence-520916"
+    ]
+  },
+  "claim-972": {
+    "claim_text": "\u201cArctic land stores about twice as much carbon as the atmosphere.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1135766",
+      "evidence-592932",
+      "evidence-1078369"
+    ]
+  },
+  "claim-1531": {
+    "claim_text": "Earth\u2019s climate is now changing faster than at any point in the history of modern civilization, primarily as a result of human activities.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-809426",
+      "evidence-336096",
+      "evidence-338219"
+    ]
+  },
+  "claim-2592": {
+    "claim_text": "\"A July 6, 2007 study published in the journal Science about Greenland by an international team of scientists found DNA \u201cevidence that suggests the frozen shield covering the immense island survived the Earth\u2019s last period of global warming,\u201d according to a Boston Globe Article. \u00a0...",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-747315",
+      "evidence-382561",
+      "evidence-761146"
+    ]
+  },
+  "claim-2468": {
+    "claim_text": "\"Satellite measurements indicate an absence of significant global warming since 1979, the very period that human carbon dioxide emissions have been increasing rapidly.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1142444",
+      "evidence-1174955",
+      "evidence-96686"
+    ]
+  },
+  "claim-463": {
+    "claim_text": "\u201cSo now we\u2019re able to explain from natural factors how we\u2019ve had the 20th Century warming.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-29528",
+      "evidence-1003462",
+      "evidence-416007"
+    ]
+  },
+  "claim-616": {
+    "claim_text": "The effect of long-term warming is to make it harder to count on snowmelt runoff in wet times",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-276438",
+      "evidence-699221",
+      "evidence-956627"
+    ]
+  },
+  "claim-1240": {
+    "claim_text": "\u201cIce-free means the central basin of the Arctic will be ice-free",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-586254",
+      "evidence-39028",
+      "evidence-111881"
+    ]
+  },
+  "claim-2951": {
+    "claim_text": "The two most cited composites are PMOD and ACRIM.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-491726",
+      "evidence-655986",
+      "evidence-740416"
+    ]
+  },
+  "claim-1977": {
+    "claim_text": "The climate-change agreement between the United States and China \"requires the Chinese to do nothing at all for 16 years.\"",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1098913",
+      "evidence-1183369",
+      "evidence-53256"
+    ]
+  },
+  "claim-942": {
+    "claim_text": "\u2018We could be decades too fast, or decades too slow,\u2019said one of them, Robert M. DeConto of the University of Massachusetts, Amherst.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1036065",
+      "evidence-255272",
+      "evidence-695175"
+    ]
+  },
+  "claim-2755": {
+    "claim_text": "Global warming is an increasingly urgent problem.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-273182",
+      "evidence-960067",
+      "evidence-894521"
+    ]
+  },
+  "claim-1230": {
+    "claim_text": "On the Pacific Coast, a climate pattern that had pushed billions of gallons of water toward Asia is now ending, so that in coming decades the sea is likely to rise quickly off states like Oregon and California.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-623469",
+      "evidence-974738",
+      "evidence-360349"
+    ]
+  },
+  "claim-3123": {
+    "claim_text": "Given that a doubling of carbon dioxide would change the surface heat flux by only two watts per square meter, it is evident that a small change in cloud cover can strongly affect the response to carbon dioxide.\"",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-100461",
+      "evidence-725977",
+      "evidence-370378"
+    ]
+  },
+  "claim-1684": {
+    "claim_text": "The 2nd law of thermodynamics is consistent with the greenhouse effect which is directly observed.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-254820",
+      "evidence-1071090",
+      "evidence-742544"
+    ]
+  },
+  "claim-839": {
+    "claim_text": "\u201cEven if we meet the Paris goals of two degrees warming, cities like Karachi and Kolkata will become close to uninhabitable, annually encountering deadly heat waves like those that crippled them in 2015.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-244106",
+      "evidence-1150951",
+      "evidence-255240"
+    ]
+  },
+  "claim-2423": {
+    "claim_text": "Arctic sea ice has been steadily thinning, even in the last few years while the surface ice (eg - sea ice extent) increased slightly.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-253690",
+      "evidence-1184933",
+      "evidence-254811"
+    ]
+  },
+  "claim-1243": {
+    "claim_text": "by that I mean the central Arctic will be ice-free.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-586254",
+      "evidence-731434",
+      "evidence-957020"
+    ]
+  },
+  "claim-494": {
+    "claim_text": "The Massachusetts Bay Colony in 1635 experienced a Category 3 or 4 storm, with up to a 20-foot storm surge.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1131498",
+      "evidence-651065",
+      "evidence-685416"
+    ]
+  },
+  "claim-1458": {
+    "claim_text": "Glaciers are retreating almost everywhere around the world \u2014 including in the Alps, Himalayas, Andes, Rockies, Alaska and Africa.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1131637",
+      "evidence-222041",
+      "evidence-947076"
+    ]
+  },
+  "claim-461": {
+    "claim_text": "Temperatures cooled from about 1940 to 1975, and then they rose from about \u201975 to about 2005 or so, and since then they\u2019ve been flat or cooling.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-905992",
+      "evidence-583022",
+      "evidence-63203"
+    ]
+  },
+  "claim-1304": {
+    "claim_text": "in a letter to The Times from Lord Krebs and company, essentially telling the newspaper to stop reporting less-than-negative climate stories.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1007094",
+      "evidence-750420",
+      "evidence-894261"
+    ]
+  },
+  "claim-2564": {
+    "claim_text": "This small warming is  likely a result of the natural alterations in global ocean currents  which are driven by ocean salinity variations.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-749407",
+      "evidence-833614",
+      "evidence-722761"
+    ]
+  },
+  "claim-2121": {
+    "claim_text": "Infrared Iris will reduce global warming",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1020307",
+      "evidence-81526",
+      "evidence-720466"
+    ]
+  },
+  "claim-2631": {
+    "claim_text": "The temperatures are expected to change by as much as 10 Fahrenheit degrees at different places of the globe.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-817524",
+      "evidence-1084381",
+      "evidence-329152"
+    ]
+  },
+  "claim-1141": {
+    "claim_text": "\u201cWhile record low sea ice is nothing new in the Arctic, this is a surprising turn of events for the Antarctic.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1143730",
+      "evidence-591257",
+      "evidence-1087946"
+    ]
+  },
+  "claim-2398": {
+    "claim_text": "While there are direct ways in which CO2 is a pollutant (acidification of the ocean), its primary impact is its greenhouse warming effect.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-499734",
+      "evidence-1054050",
+      "evidence-1132320"
+    ]
+  },
+  "claim-1048": {
+    "claim_text": "While transient weather variability is playing a key role here, the widespread record warmth across the U.S. so far this year is part of a long-term trend toward more warm temperature records versus cold ones.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-508793",
+      "evidence-40563",
+      "evidence-1656"
+    ]
+  },
+  "claim-2783": {
+    "claim_text": "The study indicates far less future global warming will occur than United Nations computer models have predicted, and supports prior studies indicating increases in atmospheric carbon dioxide trap far less heat than alarmists have claimed.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-980959",
+      "evidence-298723",
+      "evidence-178505"
+    ]
+  },
+  "claim-1003": {
+    "claim_text": "A recent study in Nature Geoscience, for instance, called into question whether the Arctic\u2019s melting, and in particular its sea ice loss, has been causing winter cooling over Eurasia, another idea that has been swept up in the debate over the jet stream and weather extremes.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-737882",
+      "evidence-765547",
+      "evidence-39028"
+    ]
+  },
+  "claim-1872": {
+    "claim_text": "Donald Trump claims Global Warming is a hoax",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-1160675",
+      "evidence-660624",
+      "evidence-235172"
+    ]
+  },
+  "claim-1842": {
+    "claim_text": "A video shows Koko the gorilla spontaneously using sign language to issue a warning about climate change.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-47367",
+      "evidence-589186",
+      "evidence-570779"
+    ]
+  },
+  "claim-2411": {
+    "claim_text": "Note that computer models are just concatenations of calculations you could do on a hand-held calculator, so they are theoretical and cannot be part of any evidence.\"",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-794356",
+      "evidence-942071",
+      "evidence-659389"
+    ]
+  },
+  "claim-2428": {
+    "claim_text": "It was the post war  industrialization that caused the rapid rise in global CO2 emissions,  but by 1945 when this began, the Earth was already in a cooling phase  that started around 1942 and continued until 1975.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-843608",
+      "evidence-625941",
+      "evidence-423643"
+    ]
+  },
+  "claim-1198": {
+    "claim_text": "\u201d \u2018You see, gas in America is incredibly cheap, because of fracking,\u2019 he says.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-990417",
+      "evidence-527651",
+      "evidence-1065464"
+    ]
+  },
+  "claim-678": {
+    "claim_text": "In the process, the cows will emit much greenhouse gas, and they will consume far more calories in beans than they will yield in meat, meaning far more clearcutting of forests to farm cattle feed than would be necessary if the beans above were simply eaten by people.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-645135",
+      "evidence-49423",
+      "evidence-65940"
+    ]
+  },
+  "claim-2105": {
+    "claim_text": "Excess CO2 from human emissions has a long residence time of over 100 years",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-931737",
+      "evidence-356854",
+      "evidence-323302"
+    ]
+  },
+  "claim-648": {
+    "claim_text": "\u2018there will not be enough nitrogen available to sustain the high carbon uptake scenarios.\u2019",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1138931",
+      "evidence-553923",
+      "evidence-350025"
+    ]
+  },
+  "claim-822": {
+    "claim_text": "Climate policy must compete with other long-term threats for always-scarce resources.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-50384",
+      "evidence-876584",
+      "evidence-629258"
+    ]
+  },
+  "claim-2561": {
+    "claim_text": "Observed sea levels are actually tracking at the upper range of the IPCC projections.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-1164059",
+      "evidence-1115102",
+      "evidence-741774"
+    ]
+  },
+  "claim-2219": {
+    "claim_text": "The increase in temperatures since 1975 is a consistent feature of all reconstructions.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-972542",
+      "evidence-544804",
+      "evidence-917435"
+    ]
+  },
+  "claim-1343": {
+    "claim_text": "roughly three-quarters of the tidal flood days now occurring in towns along the East Coast would not be happening in the absence of the rise in the sea level caused by human emissions.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-898741",
+      "evidence-469718",
+      "evidence-966234"
+    ]
+  },
+  "claim-1351": {
+    "claim_text": "a marginally significant warming trend in the data over the past several years, erasing the temperature plateau that vexed climate alarmists have found difficult to explain.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-774035",
+      "evidence-888195",
+      "evidence-1071200"
+    ]
+  },
+  "claim-2347": {
+    "claim_text": "In truth, the overwhelming majority of climate-research funding comes from the federal government and left-wing foundations.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-838187",
+      "evidence-208046",
+      "evidence-215878"
+    ]
+  },
+  "claim-293": {
+    "claim_text": "When the measuring equipment gets old and needs replacing, it often requires re-calibration.",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-104953",
+      "evidence-166447",
+      "evidence-658"
+    ]
+  },
+  "claim-910": {
+    "claim_text": "The cement, iron and steel, and petroleum refining industries could see their production cut by 21% 19%, and 11% respectively.\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-197221",
+      "evidence-117114",
+      "evidence-818020"
+    ]
+  },
+  "claim-2815": {
+    "claim_text": "A new peer-reviewed study on Surface Warming and the Solar Cycle found that times of high solar activity are on average 0.2\u00b0C warmer than times of low solar activity, and that there is a polar amplification of the warming.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-700183",
+      "evidence-333167",
+      "evidence-122441"
+    ]
+  },
+  "claim-1652": {
+    "claim_text": "The strong CO2 effect has been observed by many different measurements.",
+    "claim_label": "SUPPORTS",
+    "evidences": [
+      "evidence-716825",
+      "evidence-453635",
+      "evidence-651900"
+    ]
+  },
+  "claim-1212": {
+    "claim_text": "(In technical lingo, the so-called social cost of carbon would be negative.)\u201d",
+    "claim_label": "NOT_ENOUGH_INFO",
+    "evidences": [
+      "evidence-686179",
+      "evidence-148798",
+      "evidence-1076028"
+    ]
+  }
+}

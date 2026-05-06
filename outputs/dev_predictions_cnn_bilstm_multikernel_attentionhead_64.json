@@ -24,7 +24,7 @@
     ]
   },
   "claim-871": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-472751",
       "evidence-745642",
@@ -64,7 +64,7 @@
     ]
   },
   "claim-1273": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-81628",
       "evidence-938028",
@@ -80,7 +80,7 @@
     ]
   },
   "claim-2796": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-599055",
       "evidence-604296",
@@ -88,7 +88,7 @@
     ]
   },
   "claim-2580": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-208053",
       "evidence-425667",
@@ -120,7 +120,7 @@
     ]
   },
   "claim-2335": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1007525",
       "evidence-558580",
@@ -128,7 +128,7 @@
     ]
   },
   "claim-161": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-1005403",
       "evidence-954808",
@@ -168,7 +168,7 @@
     ]
   },
   "claim-2184": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-894734",
       "evidence-612560",
@@ -176,7 +176,7 @@
     ]
   },
   "claim-1057": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-754329",
       "evidence-1174820",
@@ -200,7 +200,7 @@
     ]
   },
   "claim-139": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-189592",
       "evidence-867005",
@@ -216,7 +216,7 @@
     ]
   },
   "claim-1160": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-662931",
       "evidence-94272",
@@ -288,7 +288,7 @@
     ]
   },
   "claim-993": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1108581",
       "evidence-627319",
@@ -320,7 +320,7 @@
     ]
   },
   "claim-856": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-664933",
       "evidence-1166728",
@@ -328,7 +328,7 @@
     ]
   },
   "claim-540": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-698828",
       "evidence-119750",
@@ -344,7 +344,7 @@
     ]
   },
   "claim-1407": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-935858",
       "evidence-407388",
@@ -360,7 +360,7 @@
     ]
   },
   "claim-1745": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1174708",
       "evidence-598168",
@@ -440,7 +440,7 @@
     ]
   },
   "claim-2326": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-956029",
       "evidence-1017927",
@@ -464,7 +464,7 @@
     ]
   },
   "claim-2300": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1053558",
       "evidence-553516",
@@ -472,7 +472,7 @@
     ]
   },
   "claim-2250": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-616168",
       "evidence-298723",
@@ -488,7 +488,7 @@
     ]
   },
   "claim-3051": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-824781",
       "evidence-992780",
@@ -504,7 +504,7 @@
     ]
   },
   "claim-261": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-332770",
       "evidence-33543",
@@ -536,7 +536,7 @@
     ]
   },
   "claim-2497": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-136867",
       "evidence-193559",
@@ -560,7 +560,7 @@
     ]
   },
   "claim-2819": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-124062",
       "evidence-363528",
@@ -568,7 +568,7 @@
     ]
   },
   "claim-2643": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-224185",
       "evidence-464939",
@@ -576,7 +576,7 @@
     ]
   },
   "claim-1775": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-1018575",
       "evidence-1043526",
@@ -592,7 +592,7 @@
     ]
   },
   "claim-896": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-248009",
       "evidence-1171424",
@@ -600,7 +600,7 @@
     ]
   },
   "claim-331": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1013521",
       "evidence-902524",
@@ -624,7 +624,7 @@
     ]
   },
   "claim-2034": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-354829",
       "evidence-114596",
@@ -632,7 +632,7 @@
     ]
   },
   "claim-578": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-652884",
       "evidence-983918",
@@ -640,7 +640,7 @@
     ]
   },
   "claim-976": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-313762",
       "evidence-346688",
@@ -688,7 +688,7 @@
     ]
   },
   "claim-756": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1206449",
       "evidence-695660",
@@ -744,7 +744,7 @@
     ]
   },
   "claim-1933": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-423215",
       "evidence-574489",
@@ -752,7 +752,7 @@
     ]
   },
   "claim-1689": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-208863",
       "evidence-269791",
@@ -760,7 +760,7 @@
     ]
   },
   "claim-443": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-100394",
       "evidence-510034",
@@ -768,7 +768,7 @@
     ]
   },
   "claim-2037": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1071718",
       "evidence-54776",
@@ -776,7 +776,7 @@
     ]
   },
   "claim-1734": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1010285",
       "evidence-1138009",
@@ -792,7 +792,7 @@
     ]
   },
   "claim-1400": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-905992",
       "evidence-1068819",
@@ -824,7 +824,7 @@
     ]
   },
   "claim-1643": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-544253",
       "evidence-575135",
@@ -832,7 +832,7 @@
     ]
   },
   "claim-1259": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-626410",
       "evidence-109778",
@@ -840,7 +840,7 @@
     ]
   },
   "claim-1605": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1088298",
       "evidence-1121998",
@@ -872,7 +872,7 @@
     ]
   },
   "claim-392": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1117137",
       "evidence-268745",
@@ -880,7 +880,7 @@
     ]
   },
   "claim-368": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-948375",
       "evidence-794227",
@@ -920,7 +920,7 @@
     ]
   },
   "claim-1420": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1062917",
       "evidence-139165",
@@ -928,7 +928,7 @@
     ]
   },
   "claim-1089": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-1183711",
       "evidence-265967",
@@ -936,7 +936,7 @@
     ]
   },
   "claim-1467": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-488727",
       "evidence-1102763",
@@ -984,7 +984,7 @@
     ]
   },
   "claim-2119": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-127999",
       "evidence-1175347",
@@ -1000,7 +1000,7 @@
     ]
   },
   "claim-623": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-446509",
       "evidence-965161",
@@ -1064,7 +1064,7 @@
     ]
   },
   "claim-478": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-693168",
       "evidence-516402",
@@ -1080,7 +1080,7 @@
     ]
   },
   "claim-266": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-794055",
       "evidence-227055",
@@ -1088,7 +1088,7 @@
     ]
   },
   "claim-2282": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-725428",
       "evidence-1068834",
@@ -1096,7 +1096,7 @@
     ]
   },
   "claim-2895": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-429157",
       "evidence-812408",
@@ -1112,7 +1112,7 @@
     ]
   },
   "claim-2101": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-208863",
       "evidence-269791",
@@ -1136,7 +1136,7 @@
     ]
   },
   "claim-386": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-354016",
       "evidence-763336",
@@ -1144,7 +1144,7 @@
     ]
   },
   "claim-2691": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-1190716",
       "evidence-1074121",
@@ -1152,7 +1152,7 @@
     ]
   },
   "claim-530": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-572512",
       "evidence-48256",
@@ -1192,7 +1192,7 @@
     ]
   },
   "claim-2400": {
-    "claim_label": "NOT_ENOUGH_INFO",
+    "claim_label": "SUPPORTS",
     "evidences": [
       "evidence-55991",
       "evidence-510034",
@@ -1216,7 +1216,7 @@
     ]
   },
   "claim-698": {
-    "claim_label": "SUPPORTS",
+    "claim_label": "NOT_ENOUGH_INFO",
     "evidences": [
       "evidence-526112",
       "evidence-366949",
