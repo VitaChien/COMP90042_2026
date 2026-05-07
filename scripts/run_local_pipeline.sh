@@ -23,6 +23,9 @@ SKIP_TRAIN="${SKIP_TRAIN:-0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Make `from src...` imports work when running scripts/*.py directly
+export PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}"
+
 PY="conda run -n comp90042 --no-capture-output python"
 
 echo
