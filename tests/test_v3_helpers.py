@@ -259,3 +259,35 @@ def test_multi_seed_run_rejects_empty_seeds():
 
     with pytest.raises(ValueError):
         multi_seed_run(lambda s: {"x": 0.0}, seeds=[])
+
+
+def test_dataset_seed_passthrough_via_pick_evidence_ids():
+    """Verify that two random.Random instances with different seeds produce
+    different sequences when threaded through pick_evidence_ids. This is the
+    seam C1 broke: if the dataset uses a hardcoded seed, multi_seed_run produces
+    identical results across seeds."""
+    import random
+
+    from src.v3_helpers import pick_evidence_ids
+
+    gold = ["g"]
+    retrieved = ["r"]
+
+    rng_a = random.Random(42)
+    rng_b = random.Random(43)
+
+    # 100 trials each -- under a non-degenerate p, the two seed-different runs
+    # should diverge.
+    seq_a = [
+        pick_evidence_ids(gold=gold, retrieved=retrieved, p_retrieved=0.5, rng=rng_a)
+        for _ in range(100)
+    ]
+    seq_b = [
+        pick_evidence_ids(gold=gold, retrieved=retrieved, p_retrieved=0.5, rng=rng_b)
+        for _ in range(100)
+    ]
+
+    assert seq_a != seq_b, (
+        "different seeds must produce different mixing sequences -- "
+        "if these are equal, multi-seed runs will be silently identical"
+    )

@@ -86,7 +86,7 @@ drive.mount("/content/drive")
 # -- EDIT IF NEEDED ----------------------------------------------------------
 GITHUB_USER = "VitaChien"
 REPO_NAME = "COMP90042_2026"
-BRANCH = "reseviv"
+BRANCH = "vita/cnn_bilstm_multihead_balance_refined"
 DRIVE_DATA = "/content/drive/MyDrive/COMP90042_2026"
 PROJECT_ROOT = "/content/COMP90042_2026"
 # ----------------------------------------------------------------------------
@@ -181,7 +181,13 @@ from tqdm.auto import tqdm
 from src.config import Config
 from src.retriever_bm25 import BM25Retriever, build_bm25_index
 from src.retriever_cross_enc import load_cross_encoder, rerank
-from src.v3_helpers import BM25CERetriever, build_vocab_full_corpus, pick_evidence_ids, simple_tokenise
+from src.v3_helpers import (
+    BM25CERetriever,
+    build_vocab_full_corpus,
+    pick_evidence_ids,
+    set_seed,
+    simple_tokenise,
+)
 
 LABEL2ID = {
     "SUPPORTS": 0,
@@ -196,18 +202,6 @@ print("Using device:", device)
 
 
 # ---------------- reproducibility ----------------
-def set_seed(seed: int = 42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True, warn_only=True)
-
-
 set_seed(42)
 
 
@@ -351,6 +345,7 @@ class CNNBiLSTMDataset(Dataset):
         retrieval_top_k=5,
         is_test=False,
         p_retrieved_for_training: float = 0.0,
+        seed: int = 42,
     ):
         self.items = list(claims_json.items())
         self.evidence_corpus = evidence_corpus
@@ -362,7 +357,7 @@ class CNNBiLSTMDataset(Dataset):
         self.retrieval_top_k = retrieval_top_k
         self.is_test = is_test
         self.p_retrieved_for_training = p_retrieved_for_training
-        self._rng = random.Random(42)
+        self._rng = random.Random(seed)
 
     def __len__(self):
         return len(self.items)
@@ -646,8 +641,9 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     max_len=256,
     max_evidence=4,
     device="cpu",
+    seed: int = 42,
 ):
-    set_seed(42)
+    set_seed(seed)
 
     train_dataset = CNNBiLSTMDataset(
         claims_json=train_claims,
@@ -660,6 +656,7 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
         retrieval_top_k=max_evidence + 4,
         p_retrieved_for_training=0.5,
         is_test=False,
+        seed=seed,
     )
 
     dev_dataset = CNNBiLSTMDataset(
@@ -673,7 +670,7 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     )
 
     g = torch.Generator()
-    g.manual_seed(42)
+    g.manual_seed(seed)
 
     train_loader = DataLoader(
         train_dataset,
@@ -823,6 +820,7 @@ def _runner(seed: int):
         epochs=10, batch_size=32, lr=1e-3,
         max_len=256, max_evidence=4,
         device=device,
+        seed=seed,
     )
     # Evaluate on retrieved-dev (the metric we ship)
     dev_dataset_ret = CNNBiLSTMDataset(
