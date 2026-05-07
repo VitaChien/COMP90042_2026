@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Dict, List
+from typing import Dict, Iterable, List, Tuple
 
 
 def simple_tokenise(text: str) -> List[str]:
@@ -49,3 +49,25 @@ def build_vocab_full_corpus(
             vocab[word] = len(vocab)
 
     return vocab
+
+
+def select_best_epoch(
+    history: Iterable[Tuple[int, float, float]],
+    key: str = "retrieved",
+) -> Tuple[int, float, float]:
+    """Pick the epoch with the highest F1 by `key`.
+
+    history: iterable of (epoch, gold_f1, retrieved_f1).
+    key: 'retrieved' (default — what the leaderboard scores)
+         | 'gold'  (legacy, for ablation only)
+
+    Ties break by earliest epoch.
+    """
+    idx = {"gold": 1, "retrieved": 2}[key]
+    best = None
+    for entry in history:
+        if best is None or entry[idx] > best[idx]:
+            best = entry
+    if best is None:
+        raise ValueError("history was empty")
+    return best

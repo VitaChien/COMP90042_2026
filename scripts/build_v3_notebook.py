@@ -637,6 +637,7 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     dev_claims,
     evidence_corpus,
     vocab,
+    retriever,
     epochs=10,
     batch_size=32,
     lr=1e-3,
@@ -679,6 +680,24 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
 
     dev_loader = DataLoader(
         dev_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=cnn_bilstm_collate_fn,
+    )
+
+    dev_dataset_retrieved = CNNBiLSTMDataset(
+        claims_json=dev_claims,
+        evidence_corpus=evidence_corpus,
+        vocab=vocab,
+        max_len=max_len,
+        max_evidence=max_evidence,
+        use_gold_evidence=False,
+        retriever=retriever,
+        retrieval_top_k=10,
+        is_test=False,
+    )
+    dev_loader_retrieved = DataLoader(
+        dev_dataset_retrieved,
         batch_size=batch_size,
         shuffle=False,
         collate_fn=cnn_bilstm_collate_fn,
@@ -736,20 +755,22 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
         avg_loss = total_loss / len(train_loader)
         print("Training loss:", round(avg_loss, 4))
 
-        dev_acc, dev_macro_f1, dev_weighted_f1 = evaluate_cnn_bilstm(
+        dev_acc_gold, dev_macro_f1_gold, _ = evaluate_cnn_bilstm(
             model, dev_loader, device
         )
+        dev_acc_ret, dev_macro_f1_ret, _ = evaluate_cnn_bilstm(
+            model, dev_loader_retrieved, device
+        )
 
-        print("Dev accuracy with gold evidence:", round(dev_acc, 4))
-        print("Dev macro F1 with gold evidence:", round(dev_macro_f1, 4))
-        print("Dev weighted F1 with gold evidence:", round(dev_weighted_f1, 4))
+        print(f"Gold-dev      acc={dev_acc_gold:.4f}  macroF1={dev_macro_f1_gold:.4f}")
+        print(f"Retrieved-dev acc={dev_acc_ret:.4f}  macroF1={dev_macro_f1_ret:.4f}")
 
-        if dev_macro_f1 > best_macro_f1:
-            best_macro_f1 = dev_macro_f1
+        if dev_macro_f1_ret > best_macro_f1:
+            best_macro_f1 = dev_macro_f1_ret
             best_state_dict = {
                 k: v.cpu().clone() for k, v in model.state_dict().items()
             }
-            print("New best model saved in memory.")
+            print("New best (retrieved-dev) saved.")
 
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
@@ -763,6 +784,7 @@ cnn_bilstm_multihead_model = train_cnn_bilstm_multikernel_multihead_balanced(
     dev_claims=dev_claims,
     evidence_corpus=evidence_corpus,
     vocab=vocab,
+    retriever=retriever,
     epochs=10,
     batch_size=32,
     lr=1e-3,

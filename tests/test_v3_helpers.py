@@ -43,3 +43,29 @@ def test_build_vocab_respects_max_vocab_size():
     )
     # 4 special + at most 10 ordinary = 14
     assert len(vocab) <= 14
+
+
+from src.v3_helpers import select_best_epoch
+
+
+def test_select_best_epoch_picks_max_retrieved_f1():
+    # Each tuple: (epoch, gold_f1, retrieved_f1)
+    history = [
+        (1, 0.40, 0.20),
+        (2, 0.50, 0.30),  # gold peak earlier
+        (3, 0.45, 0.35),  # retrieved peak here
+        (4, 0.55, 0.32),
+    ]
+    best = select_best_epoch(history, key="retrieved")
+    assert best[0] == 3, "must pick retrieved-F1 peak, not gold-F1 peak"
+
+
+def test_select_best_epoch_ties_break_by_first():
+    history = [(1, 0.5, 0.4), (2, 0.6, 0.4)]
+    best = select_best_epoch(history, key="retrieved")
+    assert best[0] == 1, "ties must break to earliest epoch"
+
+
+def test_select_best_epoch_default_is_retrieved():
+    history = [(1, 0.99, 0.10), (2, 0.10, 0.50)]
+    assert select_best_epoch(history)[0] == 2
