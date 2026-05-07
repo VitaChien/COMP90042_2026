@@ -1,5 +1,7 @@
 import random
 
+import pytest
+
 from src.v3_helpers import (
     BM25CERetriever,
     build_vocab_full_corpus,
@@ -228,3 +230,32 @@ def test_simple_tokenise_handles_double_punctuation():
 
     assert simple_tokenise("end..") == ["end"]
     assert simple_tokenise("end,.") == ["end"]
+
+
+def test_multi_seed_run_aggregates_mean_std():
+    from src.v3_helpers import multi_seed_run
+
+    # Each "seed" returns a fixed dict; we just want to verify aggregation.
+    fake_results = [
+        {"acc": 0.50, "macro_f1": 0.30},
+        {"acc": 0.60, "macro_f1": 0.40},
+        {"acc": 0.55, "macro_f1": 0.35},
+    ]
+
+    def fake_runner(seed):
+        # Map seed (42, 43, 44) -> index (0, 1, 2)
+        return fake_results[seed - 42]
+
+    summary = multi_seed_run(fake_runner, seeds=[42, 43, 44])
+    assert summary["acc"]["mean"] == pytest.approx(0.55, abs=1e-6)
+    assert summary["macro_f1"]["mean"] == pytest.approx(0.35, abs=1e-6)
+    # std (population, ddof=0): sqrt(((0.5-0.55)^2 + 0 + (0.6-0.55)^2)/3) ≈ 0.0408
+    assert summary["acc"]["std"] == pytest.approx(0.0408, abs=1e-3)
+    assert summary["acc"]["seeds"] == [42, 43, 44]
+
+
+def test_multi_seed_run_rejects_empty_seeds():
+    from src.v3_helpers import multi_seed_run
+
+    with pytest.raises(ValueError):
+        multi_seed_run(lambda s: {"x": 0.0}, seeds=[])

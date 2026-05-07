@@ -807,6 +807,39 @@ torch.save(cnn_bilstm_multihead_model.state_dict(), ckpt_path)
 print("Saved checkpoint:", ckpt_path)""")
 )
 
+CELLS.append(
+    code("""# @title 2.5 · Multi-seed run (3 seeds, ~30 min x 3) — for reporting mean +/- std
+
+from src.v3_helpers import multi_seed_run, set_seed
+
+def _runner(seed: int):
+    set_seed(seed)
+    model = train_cnn_bilstm_multikernel_multihead_balanced(
+        train_claims=train_claims,
+        dev_claims=dev_claims,
+        evidence_corpus=evidence_corpus,
+        vocab=vocab,
+        retriever=retriever,
+        epochs=10, batch_size=32, lr=1e-3,
+        max_len=256, max_evidence=4,
+        device=device,
+    )
+    # Evaluate on retrieved-dev (the metric we ship)
+    dev_dataset_ret = CNNBiLSTMDataset(
+        claims_json=dev_claims, evidence_corpus=evidence_corpus, vocab=vocab,
+        max_len=256, max_evidence=4, use_gold_evidence=False,
+        retriever=retriever, retrieval_top_k=10, is_test=False,
+    )
+    dev_loader_ret = DataLoader(dev_dataset_ret, batch_size=32, shuffle=False,
+                                  collate_fn=cnn_bilstm_collate_fn)
+    acc, macro_f1, weighted_f1 = evaluate_cnn_bilstm(model, dev_loader_ret, device)
+    return {"acc": acc, "macro_f1": macro_f1, "weighted_f1": weighted_f1}
+
+summary = multi_seed_run(_runner, seeds=[42, 43, 44])
+for m, stats in summary.items():
+    print(f"{m}: {stats['mean']:.4f} ± {stats['std']:.4f}  (values: {stats['values']})")""")
+)
+
 # ---------- Section 3 ----------
 CELLS.append(
     md(

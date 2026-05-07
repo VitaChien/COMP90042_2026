@@ -5,10 +5,15 @@ Kept as importable module so unit tests can run without Colab/notebook setup.
 
 from __future__ import annotations
 
+import os
 import random as _random
 import re
+import statistics
 from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
+
+import numpy as np
+import torch
 
 
 def simple_tokenise(text: str) -> list[str]:
@@ -177,3 +182,52 @@ def build_minimal_classifier_for_testing(vocab_size: int = 50):
 
     torch.manual_seed(42)
     return _Tiny()
+
+
+def set_seed(seed: int = 42) -> None:
+    """Seed all RNGs for reproducibility (CPU + CUDA + numpy + Python)."""
+    _random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+def multi_seed_run(
+    runner: Callable[[int], dict[str, float]],
+    seeds: Sequence[int],
+) -> dict[str, dict]:
+    """Run `runner(seed)` for each seed, aggregate to mean / std per metric.
+
+    `runner(seed)` should:
+      1. Set the global seed,
+      2. Build the model fresh,
+      3. Train + evaluate,
+      4. Return a flat dict[str, float] of metrics.
+
+    Returns:
+      {metric_name: {"mean": float, "std": float, "values": list[float],
+                     "seeds": list[int]}}
+    """
+    if not seeds:
+        raise ValueError("seeds must be non-empty")
+
+    per_seed = []
+    for s in seeds:
+        per_seed.append(runner(s))
+
+    metrics = per_seed[0].keys()
+    summary: dict[str, dict] = {}
+    for m in metrics:
+        values = [r[m] for r in per_seed]
+        summary[m] = {
+            "mean": statistics.mean(values),
+            "std": statistics.pstdev(values),  # population — small n
+            "values": values,
+            "seeds": list(seeds),
+        }
+    return summary
