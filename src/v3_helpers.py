@@ -12,16 +12,20 @@ from collections.abc import Callable, Iterable, Sequence
 
 
 def simple_tokenise(text: str) -> list[str]:
-    """Lowercase + strip non-alphanumeric (keep . , - % °) + whitespace split.
+    """Lowercase + strip non-alphanumeric (keep . , - % °) + split + strip
+    trailing .,;: from each token.
 
-    Note: Task 6 (#16) will add trailing-punctuation stripping; for now this
-    matches v3 behaviour exactly so the vocab change can be measured in
-    isolation.
+    The trailing-punctuation strip is the #16 fix: prevents `1.5°c.` and
+    `1.5°c` from becoming different vocab entries, which fragments
+    climate-domain numeric tokens.
     """
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s\.\,\-\%°]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    return text.split()
+    tokens = text.split()
+    # Strip *trailing* punctuation only — internal `.` (decimals) and `,`
+    # (thousands sep) are preserved.
+    return [t.rstrip(".,;:") for t in tokens if t.rstrip(".,;:")]
 
 
 def build_vocab_full_corpus(

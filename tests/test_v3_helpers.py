@@ -191,3 +191,40 @@ def test_bm25_ce_retriever_passes_through_to_rerank():
     assert seen["candidates"] == [("e1", 0.5), ("e2", 0.4), ("e3", 0.3)]
     assert seen["top_k"] == 2
     assert out == ["e1", "e2"]
+
+
+def test_simple_tokenise_strips_trailing_period():
+    from src.v3_helpers import simple_tokenise
+
+    assert simple_tokenise("1.5°c.") == ["1.5°c"]
+
+
+def test_simple_tokenise_strips_trailing_comma():
+    from src.v3_helpers import simple_tokenise
+
+    assert simple_tokenise("alpha, beta.") == ["alpha", "beta"]
+
+
+def test_simple_tokenise_keeps_internal_period():
+    """Internal periods (decimals) must NOT be stripped."""
+    from src.v3_helpers import simple_tokenise
+
+    tokens = simple_tokenise("a 1.5 b")
+    assert "1.5" in tokens, f"got {tokens}"
+
+
+def test_simple_tokenise_keeps_internal_comma():
+    """Internal commas (rare but present) must NOT be stripped."""
+    from src.v3_helpers import simple_tokenise
+
+    tokens = simple_tokenise("100,000 dollars")
+    # Either "100,000" preserved or split — but never bare "100,"
+    assert not any(t.endswith(",") for t in tokens)
+    assert not any(t.endswith(".") for t in tokens)
+
+
+def test_simple_tokenise_handles_double_punctuation():
+    from src.v3_helpers import simple_tokenise
+
+    assert simple_tokenise("end..") == ["end"]
+    assert simple_tokenise("end,.") == ["end"]
