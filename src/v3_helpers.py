@@ -5,9 +5,10 @@ Kept as importable module so unit tests can run without Colab/notebook setup.
 
 from __future__ import annotations
 
+import random as _random
 import re
 from collections import Counter
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 def simple_tokenise(text: str) -> List[str]:
@@ -71,3 +72,28 @@ def select_best_epoch(
     if best is None:
         raise ValueError("history was empty")
     return best
+
+
+def pick_evidence_ids(
+    gold: Sequence[str],
+    retrieved: Sequence[str],
+    p_retrieved: float,
+    rng: Optional[_random.Random] = None,
+) -> List[str]:
+    """Choose evidence IDs for a training example.
+
+    With probability `p_retrieved`, return retrieved-with-gold-filtered-out
+    (hard negatives). Otherwise return gold. If gold is empty (e.g. NEI
+    claims), fall back to retrieved regardless of p_retrieved.
+
+    Filtering gold from retrieved ensures hard negatives are genuinely
+    distractors — passages that look relevant but are not labelled gold.
+    """
+    rng = rng or _random
+    if not gold:
+        return list(retrieved)
+    use_retrieved = rng.random() < p_retrieved
+    if use_retrieved:
+        gold_set = set(gold)
+        return [eid for eid in retrieved if eid not in gold_set]
+    return list(gold)

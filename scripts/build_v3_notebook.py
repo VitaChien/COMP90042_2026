@@ -151,7 +151,7 @@ import random
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from src.v3_helpers import build_vocab_full_corpus, simple_tokenise
+from src.v3_helpers import build_vocab_full_corpus, pick_evidence_ids, simple_tokenise
 
 import numpy as np
 import torch
@@ -373,6 +373,7 @@ class CNNBiLSTMDataset(Dataset):
         retriever=None,
         retrieval_top_k=5,
         is_test=False,
+        p_retrieved_for_training: float = 0.0,
     ):
         self.items = list(claims_json.items())
         self.evidence_corpus = evidence_corpus
@@ -383,6 +384,8 @@ class CNNBiLSTMDataset(Dataset):
         self.retriever = retriever
         self.retrieval_top_k = retrieval_top_k
         self.is_test = is_test
+        self.p_retrieved_for_training = p_retrieved_for_training
+        self._rng = random.Random(42)
 
     def __len__(self):
         return len(self.items)
@@ -391,12 +394,20 @@ class CNNBiLSTMDataset(Dataset):
         claim_id, instance = self.items[idx]
         claim_text = instance["claim_text"]
 
-        if self.use_gold_evidence and not self.is_test:
-            evidence_ids = instance.get("evidences", [])
+        if self.is_test:
+            evidence_ids = self.retriever.retrieve(claim_text, top_k=self.retrieval_top_k)
+        elif self.use_gold_evidence:
+            gold = instance.get("evidences", [])
+            if self.p_retrieved_for_training > 0.0 and self.retriever is not None:
+                retrieved = self.retriever.retrieve(claim_text, top_k=self.retrieval_top_k)
+                evidence_ids = pick_evidence_ids(
+                    gold=gold, retrieved=retrieved,
+                    p_retrieved=self.p_retrieved_for_training, rng=self._rng,
+                )
+            else:
+                evidence_ids = gold
         else:
-            evidence_ids = self.retriever.retrieve(
-                claim_text, top_k=self.retrieval_top_k
-            )
+            evidence_ids = self.retriever.retrieve(claim_text, top_k=self.retrieval_top_k)
 
         evidence_text = concatenate_evidence(
             evidence_ids=evidence_ids,
@@ -654,6 +665,9 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
         max_len=max_len,
         max_evidence=max_evidence,
         use_gold_evidence=True,
+        retriever=retriever,
+        retrieval_top_k=max_evidence + 4,
+        p_retrieved_for_training=0.5,
         is_test=False,
     )
 

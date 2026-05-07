@@ -69,3 +69,71 @@ def test_select_best_epoch_ties_break_by_first():
 def test_select_best_epoch_default_is_retrieved():
     history = [(1, 0.99, 0.10), (2, 0.10, 0.50)]
     assert select_best_epoch(history)[0] == 2
+
+
+import random
+
+
+def test_mixed_evidence_uses_gold_with_prob_zero():
+    """p_retrieved=0 - always gold (degenerate to current behaviour)."""
+    from src.v3_helpers import pick_evidence_ids
+
+    gold = ["g1", "g2"]
+    fake_retriever_output = ["r1", "r2", "r3"]
+    rng = random.Random(0)
+    for _ in range(20):
+        result = pick_evidence_ids(
+            gold=gold, retrieved=fake_retriever_output, p_retrieved=0.0, rng=rng
+        )
+        assert result == gold
+
+
+def test_mixed_evidence_uses_retrieved_with_prob_one():
+    from src.v3_helpers import pick_evidence_ids
+
+    gold = ["g1", "g2"]
+    retrieved = ["r1", "r2", "r3"]
+    rng = random.Random(0)
+    for _ in range(20):
+        result = pick_evidence_ids(
+            gold=gold, retrieved=retrieved, p_retrieved=1.0, rng=rng
+        )
+        assert result == retrieved
+
+
+def test_mixed_evidence_excludes_gold_from_retrieved():
+    """Hard negatives must not be gold passages (else they're trivial)."""
+    from src.v3_helpers import pick_evidence_ids
+
+    gold = ["e1"]
+    retrieved = ["e1", "e2", "e3"]  # retriever happens to return gold too
+    rng = random.Random(0)
+    result = pick_evidence_ids(gold=gold, retrieved=retrieved, p_retrieved=1.0, rng=rng)
+    assert "e1" not in result, "gold passages must be filtered from hard-negatives"
+    assert result == ["e2", "e3"]
+
+
+def test_mixed_evidence_empty_gold_falls_back_to_retrieved():
+    """NEI claims often have empty gold; use retrieved unconditionally."""
+    from src.v3_helpers import pick_evidence_ids
+
+    rng = random.Random(0)
+    result = pick_evidence_ids(
+        gold=[], retrieved=["r1", "r2"], p_retrieved=0.0, rng=rng
+    )
+    assert result == ["r1", "r2"]
+
+
+def test_mixed_evidence_distribution_around_p():
+    """With p=0.5 over many trials, ~half should be gold, ~half retrieved."""
+    from src.v3_helpers import pick_evidence_ids
+
+    gold = ["g"]
+    retrieved = ["r"]
+    rng = random.Random(42)
+    n = 1000
+    n_retrieved = sum(
+        pick_evidence_ids(gold=gold, retrieved=retrieved, p_retrieved=0.5, rng=rng) == retrieved
+        for _ in range(n)
+    )
+    assert 400 <= n_retrieved <= 600, f"expected ~500, got {n_retrieved}"
