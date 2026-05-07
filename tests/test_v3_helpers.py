@@ -1,4 +1,11 @@
-from src.v3_helpers import build_vocab_full_corpus, simple_tokenise
+import random
+
+from src.v3_helpers import (
+    BM25CERetriever,
+    build_vocab_full_corpus,
+    pick_evidence_ids,
+    select_best_epoch,
+)
 
 
 def test_build_vocab_full_corpus_includes_corpus_only_tokens():
@@ -6,7 +13,7 @@ def test_build_vocab_full_corpus_includes_corpus_only_tokens():
         "c1": {"claim_text": "alpha beta", "evidences": ["e1"]},
     }
     evidence_corpus = {
-        "e1": "alpha gamma",       # gamma appears in gold (and corpus)
+        "e1": "alpha gamma",  # gamma appears in gold (and corpus)
         "e2": "delta delta epsilon",  # delta+epsilon only in non-gold corpus
     }
     vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=1)
@@ -30,7 +37,7 @@ def test_build_vocab_respects_min_freq():
 
     vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=2)
 
-    assert "common" in vocab     # freq 3 >= 2 -> included
+    assert "common" in vocab  # freq 3 >= 2 -> included
     assert "rare_word" not in vocab  # freq 1 < 2 -> excluded
 
 
@@ -38,14 +45,9 @@ def test_build_vocab_respects_max_vocab_size():
     train_claims = {"c1": {"claim_text": "x", "evidences": []}}
     # 100 unique tokens in corpus, all freq 1
     evidence_corpus = {f"e{i}": f"tok{i}" for i in range(100)}
-    vocab = build_vocab_full_corpus(
-        train_claims, evidence_corpus, min_freq=1, max_vocab_size=10
-    )
+    vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=1, max_vocab_size=10)
     # 4 special + at most 10 ordinary = 14
     assert len(vocab) <= 14
-
-
-from src.v3_helpers import select_best_epoch
 
 
 def test_select_best_epoch_picks_max_retrieved_f1():
@@ -71,13 +73,8 @@ def test_select_best_epoch_default_is_retrieved():
     assert select_best_epoch(history)[0] == 2
 
 
-import random
-
-
 def test_mixed_evidence_uses_gold_with_prob_zero():
     """p_retrieved=0 - always gold (degenerate to current behaviour)."""
-    from src.v3_helpers import pick_evidence_ids
-
     gold = ["g1", "g2"]
     fake_retriever_output = ["r1", "r2", "r3"]
     rng = random.Random(0)
@@ -89,22 +86,16 @@ def test_mixed_evidence_uses_gold_with_prob_zero():
 
 
 def test_mixed_evidence_uses_retrieved_with_prob_one():
-    from src.v3_helpers import pick_evidence_ids
-
     gold = ["g1", "g2"]
     retrieved = ["r1", "r2", "r3"]
     rng = random.Random(0)
     for _ in range(20):
-        result = pick_evidence_ids(
-            gold=gold, retrieved=retrieved, p_retrieved=1.0, rng=rng
-        )
+        result = pick_evidence_ids(gold=gold, retrieved=retrieved, p_retrieved=1.0, rng=rng)
         assert result == retrieved
 
 
 def test_mixed_evidence_excludes_gold_from_retrieved():
     """Hard negatives must not be gold passages (else they're trivial)."""
-    from src.v3_helpers import pick_evidence_ids
-
     gold = ["e1"]
     retrieved = ["e1", "e2", "e3"]  # retriever happens to return gold too
     rng = random.Random(0)
@@ -115,19 +106,13 @@ def test_mixed_evidence_excludes_gold_from_retrieved():
 
 def test_mixed_evidence_empty_gold_falls_back_to_retrieved():
     """NEI claims often have empty gold; use retrieved unconditionally."""
-    from src.v3_helpers import pick_evidence_ids
-
     rng = random.Random(0)
-    result = pick_evidence_ids(
-        gold=[], retrieved=["r1", "r2"], p_retrieved=0.0, rng=rng
-    )
+    result = pick_evidence_ids(gold=[], retrieved=["r1", "r2"], p_retrieved=0.0, rng=rng)
     assert result == ["r1", "r2"]
 
 
 def test_mixed_evidence_distribution_around_p():
     """With p=0.5 over many trials, ~half should be gold, ~half retrieved."""
-    from src.v3_helpers import pick_evidence_ids
-
     gold = ["g"]
     retrieved = ["r"]
     rng = random.Random(42)
@@ -137,3 +122,45 @@ def test_mixed_evidence_distribution_around_p():
         for _ in range(n)
     )
     assert 400 <= n_retrieved <= 600, f"expected ~500, got {n_retrieved}"
+
+
+class _StubBM25:
+    """Mimics BM25Retriever.search."""
+
+    def __init__(self, return_value):
+        self._return = return_value
+        self.calls = []
+
+    def search(self, query, top_k=200):
+        self.calls.append((query, top_k))
+        return self._return[:top_k]
+
+
+def test_bm25_ce_retriever_returns_ids_only():
+    """Adapter must expose .retrieve(claim, top_k=K) -> list[str]."""
+    bm25 = _StubBM25([("e1", 0.9), ("e2", 0.5), ("e3", 0.1)])
+    retriever = BM25CERetriever(
+        bm25=bm25,
+        rerank_fn=lambda claim, candidates, top_k: candidates[:top_k],
+        bm25_top_k=200,
+    )
+    result = retriever.retrieve("a claim", top_k=2)
+    assert result == ["e1", "e2"], "must return only IDs in rerank order"
+
+
+def test_bm25_ce_retriever_passes_through_to_rerank():
+    bm25 = _StubBM25([("e1", 0.5), ("e2", 0.4), ("e3", 0.3)])
+    seen = {}
+
+    def fake_rerank(claim, candidates, top_k):
+        seen["claim"] = claim
+        seen["candidates"] = candidates
+        seen["top_k"] = top_k
+        return [(eid, -score) for eid, score in candidates][:top_k]  # reverse
+
+    retriever = BM25CERetriever(bm25=bm25, rerank_fn=fake_rerank, bm25_top_k=3)
+    out = retriever.retrieve("hello", top_k=2)
+    assert seen["claim"] == "hello"
+    assert seen["candidates"] == [("e1", 0.5), ("e2", 0.4), ("e3", 0.3)]
+    assert seen["top_k"] == 2
+    assert out == ["e1", "e2"]

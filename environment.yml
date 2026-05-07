@@ -1,0 +1,18 @@
+name: comp90042
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - torch>=2.0
+      - transformers>=4.40
+      - bm25s>=0.3
+      - PyStemmer>=2.2
+      - scikit-learn>=1.3
+      - numpy>=1.24
+      - tqdm>=4.65
+      - pytest>=7.4
+      - ruff>=0.6
+      - pre-commit>=3.7

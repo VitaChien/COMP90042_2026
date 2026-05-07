@@ -30,35 +30,43 @@ def code(src: str) -> dict:
 CELLS = []
 
 # ---------- title + readme ----------
-CELLS.append(md(
-    "# 2026 COMP90042 Project — Group 073 (CNN+BiLSTM+Multihead, balanced)\n"
-    "*Fact-checking: FAISS dense retrieval + multi-kernel CNN + BiLSTM + multi-head attention classifier with class-balanced loss.*"
-))
+CELLS.append(
+    md(
+        "# 2026 COMP90042 Project — Group 073 (CNN+BiLSTM+Multihead, balanced)\n"
+        "*Fact-checking: BM25+cross-encoder retrieval + multi-kernel CNN + BiLSTM + multi-head attention classifier with class-balanced loss.*"
+    )
+)
 
-CELLS.append(md(
-    "# Readme\n"
-    "\n"
-    "**Before running:**\n"
-    "\n"
-    "1. From your local machine, push the working branch to GitHub:\n"
-    "   `git push -u origin <branch>`\n"
-    "2. Add a GitHub Personal Access Token to Colab Secrets (only needed for private repos).\n"
-    "3. On Google Drive at `/content/drive/MyDrive/COMP90042_2026/`, place the data:\n"
-    "   - Required: `data/evidence.json` (~1 GB), `data/train-claims.json`, `data/dev-claims.json`, `data/test-claims-unlabelled.json`\n"
-    "   - Optional (saves ~1 hr): `cache/faiss/*.faiss` and `cache/faiss/*_evidence_ids.json`\n"
-    "\n"
-    "Cell 1.1 clones the code from GitHub to `/content/COMP90042_2026` (Colab's fast local SSD) and symlinks `data/`, `cache/`, `checkpoints/`, `outputs/` from Drive — so code is git-managed and data persists across sessions.\n"
-    "\n"
-    "**Pipeline:** FAISS dense retrieval (1.2M passages) → CNN+BiLSTM+Multi-head Attention classifier trained with class-balanced cross-entropy."
-))
+CELLS.append(
+    md(
+        "# Readme\n"
+        "\n"
+        "**Before running:**\n"
+        "\n"
+        "1. From your local machine, push the working branch to GitHub:\n"
+        "   `git push -u origin <branch>`\n"
+        "2. Add a GitHub Personal Access Token to Colab Secrets (only needed for private repos).\n"
+        "3. On Google Drive at `/content/drive/MyDrive/COMP90042_2026/`, place the data:\n"
+        "   - Required: `data/evidence.json` (~1 GB), `data/train-claims.json`, `data/dev-claims.json`, `data/test-claims-unlabelled.json`\n"
+        "   - Optional (saves ~2 min): `cache/bm25_index/` (pre-built BM25 index)\n"
+        "   - Required for retrieval: `checkpoints/cross_encoder.pt` (trained cross-encoder; see cell 1.3 note)\n"
+        "\n"
+        "Cell 1.1 clones the code from GitHub to `/content/COMP90042_2026` (Colab's fast local SSD) and symlinks `data/`, `cache/`, `checkpoints/`, `outputs/` from Drive — so code is git-managed and data persists across sessions.\n"
+        "\n"
+        "**Pipeline:** BM25 top-200 retrieval + cross-encoder reranking (1.2M passages) → CNN+BiLSTM+Multi-head Attention classifier trained with class-balanced cross-entropy."
+    )
+)
 
 # ---------- Section 1 ----------
-CELLS.append(md(
-    "# 1.DataSet Processing\n"
-    "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
-))
+CELLS.append(
+    md(
+        "# 1.DataSet Processing\n"
+        "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
+    )
+)
 
-CELLS.append(code('''# @title 1.1 · Setup — Sync code from GitHub, mount Drive, install packages
+CELLS.append(
+    code("""# @title 1.1 · Setup — Sync code from GitHub, mount Drive, install packages
 
 import os
 
@@ -107,8 +115,7 @@ subprocess.check_call(
         "-q",
         "torch",
         "transformers>=4.40",
-        "sentence-transformers>=2.7",
-        "faiss-cpu",
+        "bm25s[full]>=0.3",
         "scikit-learn>=1.3",
         "tqdm>=4.65",
     ]
@@ -116,9 +123,11 @@ subprocess.check_call(
 
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
-print(f"Working directory: {os.getcwd()}")'''))
+print(f"Working directory: {os.getcwd()}")""")
+)
 
-CELLS.append(code('''# @title 1.2 · Verify data files exist
+CELLS.append(
+    code("""# @title 1.2 · Verify data files exist
 from pathlib import Path
 
 root = Path(PROJECT_ROOT)
@@ -127,7 +136,8 @@ checks = [
     ("data/train-claims.json", "required"),
     ("data/dev-claims.json", "required"),
     ("data/test-claims-unlabelled.json", "required"),
-    ("cache/faiss", "optional — saves ~1 hr"),
+    ("cache/bm25_index", "optional — saves ~2 min"),
+    ("checkpoints/cross_encoder.pt", "required for retrieval — see cell 1.3 note"),
 ]
 missing_required = False
 for rel, note in checks:
@@ -142,32 +152,36 @@ for rel, note in checks:
             missing_required = True
 
 if missing_required:
-    raise FileNotFoundError("Required data files are missing. Upload them to Drive first.")'''))
+    raise FileNotFoundError("Required data files are missing. Upload them to Drive first.")""")
+)
 
-CELLS.append(code('''# @title 1.3 · Imports, utilities, load data, build vocab, build/load FAISS index
+CELLS.append(
+    code("""# @title 1.3 · Imports, utilities, load data, build vocab, build/load BM25+CE retriever
 
 import json
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from src.v3_helpers import build_vocab_full_corpus, pick_evidence_ids, simple_tokenise
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence
-from tqdm.auto import tqdm
-
 from sklearn.metrics import (
     accuracy_score,
-    f1_score,
     classification_report,
     confusion_matrix,
+    f1_score,
 )
 from sklearn.utils.class_weight import compute_class_weight
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader, Dataset
+from tqdm.auto import tqdm
+
+from src.config import Config
+from src.retriever_bm25 import BM25Retriever, build_bm25_index
+from src.retriever_cross_enc import load_cross_encoder, rerank
+from src.v3_helpers import BM25CERetriever, build_vocab_full_corpus, pick_evidence_ids, simple_tokenise
 
 LABEL2ID = {
     "SUPPORTS": 0,
@@ -202,7 +216,7 @@ DATA_DIR = Path("data")
 OUTPUT_DIR = Path("outputs")
 CACHE_DIR = Path("cache")
 OUTPUT_DIR.mkdir(exist_ok=True)
-(CACHE_DIR / "faiss").mkdir(parents=True, exist_ok=True)
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 EVIDENCE_PATH = DATA_DIR / "evidence.json"
 TRAIN_PATH = DATA_DIR / "train-claims.json"
@@ -256,95 +270,58 @@ vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=2, max_v
 print("Vocab size:", len(vocab))
 
 
-# ---------------- FAISS retriever (build if missing, else load) ----------------
-import faiss
-from sentence_transformers import SentenceTransformer
+# ---------------- BM25 + Cross-encoder retriever (replaces FAISS) ----------------
+cfg = Config()
+bm25_cache = cfg.cache_dir / "bm25_index"
+if not bm25_cache.exists():
+    print("Building BM25 index (one-time, ~2 min)...")
+    build_bm25_index(evidence_corpus, bm25_cache)
 
+bm25 = BM25Retriever.from_cache(bm25_cache)
 
-class CachedFAISSDenseRetriever:
-    def __init__(
-        self,
-        evidence_corpus,
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        cache_dir="cache/faiss",
-        batch_size=64,
-        device=None,
-        force_rebuild=False,
-    ):
-        self.evidence_corpus = evidence_corpus
-        self.evidence_ids = list(evidence_corpus.keys())
-        self.evidence_texts = [evidence_corpus[eid] for eid in self.evidence_ids]
+ce_ckpt = cfg.ckpt_dir / "cross_encoder.pt"
+if not ce_ckpt.exists():
+    raise FileNotFoundError(
+        f"Cross-encoder checkpoint missing: {ce_ckpt}\\n"
+        "Run scripts/train_cross_encoder.py first or copy a pretrained one."
+    )
+ce_tok, ce_model = load_cross_encoder(cfg.cross_encoder_model, ce_ckpt, device=device)
 
-        self.model_name = model_name
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+def _rerank_fn(claim_text, candidates, top_k):
+    return rerank(
+        ce_model, ce_tok, claim_text, candidates, evidence_corpus,
+        top_k=top_k, batch_size=64, device=device, max_len=cfg.ce_max_len,
+    )
 
-        safe_model_name = model_name.replace("/", "_")
-        self.index_path = self.cache_dir / f"{safe_model_name}.faiss"
-        self.ids_path = self.cache_dir / f"{safe_model_name}_evidence_ids.json"
+retriever = BM25CERetriever(bm25=bm25, rerank_fn=_rerank_fn, bm25_top_k=200)
+print("Retriever ready: BM25 top-200 -> CE rerank")""")
+)
 
-        self.model = SentenceTransformer(model_name, device=device)
-
-        if (
-            self.index_path.exists()
-            and self.ids_path.exists()
-            and not force_rebuild
-        ):
-            print("Loading cached FAISS index...")
-            with open(self.ids_path, "r", encoding="utf-8") as f:
-                cached_ids = json.load(f)
-            if cached_ids != self.evidence_ids:
-                print("Cached IDs mismatch — rebuilding.")
-                self._build_and_save_index(batch_size)
-            else:
-                self.index = faiss.read_index(str(self.index_path))
-                print("Cached FAISS index loaded.")
-        else:
-            print("No valid FAISS cache found. Building index...")
-            self._build_and_save_index(batch_size)
-
-    def _build_and_save_index(self, batch_size):
-        evidence_embeddings = self.model.encode(
-            self.evidence_texts,
-            batch_size=batch_size,
-            show_progress_bar=True,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-        ).astype("float32")
-        embedding_dim = evidence_embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(embedding_dim)
-        self.index.add(evidence_embeddings)
-        faiss.write_index(self.index, str(self.index_path))
-        with open(self.ids_path, "w", encoding="utf-8") as f:
-            json.dump(self.evidence_ids, f, indent=2)
-        print("Saved FAISS index to:", self.index_path)
-
-    def retrieve(self, claim_text, top_k=5):
-        claim_embedding = self.model.encode(
-            [claim_text],
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-        ).astype("float32")
-        scores, indices = self.index.search(claim_embedding, top_k)
-        return [self.evidence_ids[i] for i in indices[0]]
-
-
-retriever = CachedFAISSDenseRetriever(
-    evidence_corpus=evidence_corpus,
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    cache_dir="cache/faiss",
-    batch_size=64,
-    device=device,
-    force_rebuild=False,
-)'''))
+CELLS.append(
+    md(
+        "### Cross-encoder checkpoint required\n"
+        "\n"
+        "This notebook expects a trained cross-encoder at `checkpoints/cross_encoder.pt`. "
+        "If absent, train one first on Colab (~30 min on T4):\n"
+        "\n"
+        "```\n"
+        "!python scripts/train_cross_encoder.py --epochs 4\n"
+        "```\n"
+        "\n"
+        "The script and modules came from the `vita/retriever` branch."
+    )
+)
 
 # ---------- Section 2 ----------
-CELLS.append(md(
-    "# 2.Model Implementation\n"
-    "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
-))
+CELLS.append(
+    md(
+        "# 2.Model Implementation\n"
+        "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
+    )
+)
 
-CELLS.append(code('''# @title 2.1 · Encode text + CNNBiLSTMDataset + collate fn
+CELLS.append(
+    code("""# @title 2.1 · Encode text + CNNBiLSTMDataset + collate fn
 
 def encode_tokens(tokens, vocab, max_len=512):
     ids = [vocab.get(tok, vocab["<UNK>"]) for tok in tokens]
@@ -352,12 +329,12 @@ def encode_tokens(tokens, vocab, max_len=512):
 
 
 def encode_claim_evidence(claim_text, evidence_text, vocab, max_len=512):
-    tokens = (
-        ["<CLAIM>"]
-        + simple_tokenise(claim_text)
-        + ["<EVIDENCE>"]
-        + simple_tokenise(evidence_text)
-    )
+    tokens = [
+        "<CLAIM>",
+        *simple_tokenise(claim_text),
+        "<EVIDENCE>",
+        *simple_tokenise(evidence_text),
+    ]
     return encode_tokens(tokens, vocab, max_len=max_len)
 
 
@@ -453,9 +430,11 @@ def cnn_bilstm_collate_fn(batch):
     if "label" in batch[0]:
         output["labels"] = torch.stack([item["label"] for item in batch])
 
-    return output'''))
+    return output""")
+)
 
-CELLS.append(code('''# @title 2.2 · Model — multi-kernel CNN + BiLSTM + Multi-head Attention + Attention Pooling
+CELLS.append(
+    code("""# @title 2.2 · Model — multi-kernel CNN + BiLSTM + Multi-head Attention + Attention Pooling
 
 class AttentionPooling(nn.Module):
     def __init__(self, hidden_dim):
@@ -570,9 +549,11 @@ class CNNBiLSTMMultiheadClassifier(nn.Module):
         pooled_output = self.dropout(pooled_output)
 
         logits = self.classifier(pooled_output)
-        return logits'''))
+        return logits""")
+)
 
-CELLS.append(code('''# @title 2.3 · Evaluate fn + class weights + train fn (class-balanced cross-entropy)
+CELLS.append(
+    code("""# @title 2.3 · Evaluate fn + class weights + train fn (class-balanced cross-entropy)
 
 def evaluate_cnn_bilstm(model, dataloader, device="cpu"):
     model.eval()
@@ -789,9 +770,11 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
 
-    return model'''))
+    return model""")
+)
 
-CELLS.append(code('''# @title 2.4 · Run training (10 epochs, class-balanced loss)
+CELLS.append(
+    code("""# @title 2.4 · Run training (10 epochs, class-balanced loss)
 
 cnn_bilstm_multihead_model = train_cnn_bilstm_multikernel_multihead_balanced(
     train_claims=train_claims,
@@ -811,15 +794,19 @@ cnn_bilstm_multihead_model = train_cnn_bilstm_multikernel_multihead_balanced(
 ckpt_path = Path("checkpoints") / "cnn_bilstm_multihead_balanced.pt"
 ckpt_path.parent.mkdir(parents=True, exist_ok=True)
 torch.save(cnn_bilstm_multihead_model.state_dict(), ckpt_path)
-print("Saved checkpoint:", ckpt_path)'''))
+print("Saved checkpoint:", ckpt_path)""")
+)
 
 # ---------- Section 3 ----------
-CELLS.append(md(
-    "# 3.Testing and Evaluation\n"
-    "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
-))
+CELLS.append(
+    md(
+        "# 3.Testing and Evaluation\n"
+        "(You can add as many code blocks and text blocks as you need. However, YOU SHOULD NOT MODIFY the section title)"
+    )
+)
 
-CELLS.append(code('''# @title 3.1 · Predict on dev set (FAISS top-10 -> use top-4)
+CELLS.append(
+    code("""# @title 3.1 · Predict on dev set (BM25+CE top-10 -> use top-4)
 
 def predict_claims_cnn_bilstm(
     claims_json,
@@ -894,9 +881,11 @@ dev_predictions_cnn_bilstm = predict_claims_cnn_bilstm(
     max_len=256,
     is_test=False,
     device=device,
-)'''))
+)""")
+)
 
-CELLS.append(code('''# @title 3.2 · Evaluate dev predictions — classification F1 + eval.py
+CELLS.append(
+    code("""# @title 3.2 · Evaluate dev predictions — classification F1 + eval.py
 
 def evaluate_dev_predictions_classification_f1(dev_claims, predictions):
     gold_labels = []
@@ -955,9 +944,6 @@ dev_cls_acc, dev_cls_macro_f1, dev_cls_weighted_f1 = (
 )
 
 # Run official eval.py for Evidence F-score + Harmonic Mean
-import subprocess
-import sys
-
 subprocess.check_call(
     [
         sys.executable,
@@ -967,9 +953,11 @@ subprocess.check_call(
         "--groundtruth",
         str(DEV_PATH),
     ]
-)'''))
+)""")
+)
 
-CELLS.append(code('''# @title 3.3 · Generate final predictions on test set (for submission)
+CELLS.append(
+    code("""# @title 3.3 · Generate final predictions on test set (for submission)
 
 test_claims = load_json(TEST_PATH)
 
@@ -990,20 +978,23 @@ test_predictions = predict_claims_cnn_bilstm(
     device=device,
 )
 
-print(f"\\nTest predictions saved to {TEST_PRED_PATH}")'''))
+print(f"\\nTest predictions saved to {TEST_PRED_PATH}")""")
+)
 
-CELLS.append(md(
-    "## Object Oriented Programming codes here\n"
-    "\n"
-    "All OOP code is inline above:\n"
-    "\n"
-    "| Class | Section | Purpose |\n"
-    "|-------|---------|---------|\n"
-    "| `CachedFAISSDenseRetriever` | 1.3 | Dense retriever — builds/loads FAISS index over evidence corpus |\n"
-    "| `CNNBiLSTMDataset` | 2.1 | Pairs claim with gold (train) or retrieved (predict) evidence |\n"
-    "| `AttentionPooling` | 2.2 | Learnable weighted-sum pooling over sequence |\n"
-    "| `CNNBiLSTMMultiheadClassifier` | 2.2 | Multi-kernel CNN → BiLSTM → Multi-head Attention → AttentionPooling → MLP |\n"
-))
+CELLS.append(
+    md(
+        "## Object Oriented Programming codes here\n"
+        "\n"
+        "All OOP code is inline above:\n"
+        "\n"
+        "| Class | Section | Purpose |\n"
+        "|-------|---------|---------|\n"
+        "| `BM25CERetriever` | 1.3 | Adapter wrapping BM25 top-200 candidate retrieval + cross-encoder reranking |\n"
+        "| `CNNBiLSTMDataset` | 2.1 | Pairs claim with gold (train) or retrieved (predict) evidence |\n"
+        "| `AttentionPooling` | 2.2 | Learnable weighted-sum pooling over sequence |\n"
+        "| `CNNBiLSTMMultiheadClassifier` | 2.2 | Multi-kernel CNN → BiLSTM → Multi-head Attention → AttentionPooling → MLP |\n"
+    )
+)
 
 
 # ---------- write notebook ----------

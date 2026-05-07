@@ -8,10 +8,10 @@ from __future__ import annotations
 import random as _random
 import re
 from collections import Counter
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from collections.abc import Callable, Iterable, Sequence
 
 
-def simple_tokenise(text: str) -> List[str]:
+def simple_tokenise(text: str) -> list[str]:
     """Lowercase + strip non-alphanumeric (keep . , - % °) + whitespace split.
 
     Note: Task 6 (#16) will add trailing-punctuation stripping; for now this
@@ -25,11 +25,11 @@ def simple_tokenise(text: str) -> List[str]:
 
 
 def build_vocab_full_corpus(
-    train_claims: Dict,
-    evidence_corpus: Dict[str, str],
+    train_claims: dict,
+    evidence_corpus: dict[str, str],
     min_freq: int = 2,
     max_vocab_size: int = 50_000,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Build vocab over claims + entire evidence corpus.
 
     v3 only counted train claims + their gold evidence (~6872 tokens).
@@ -53,9 +53,9 @@ def build_vocab_full_corpus(
 
 
 def select_best_epoch(
-    history: Iterable[Tuple[int, float, float]],
+    history: Iterable[tuple[int, float, float]],
     key: str = "retrieved",
-) -> Tuple[int, float, float]:
+) -> tuple[int, float, float]:
     """Pick the epoch with the highest F1 by `key`.
 
     history: iterable of (epoch, gold_f1, retrieved_f1).
@@ -78,8 +78,8 @@ def pick_evidence_ids(
     gold: Sequence[str],
     retrieved: Sequence[str],
     p_retrieved: float,
-    rng: Optional[_random.Random] = None,
-) -> List[str]:
+    rng: _random.Random | None = None,
+) -> list[str]:
     """Choose evidence IDs for a training example.
 
     With probability `p_retrieved`, return retrieved-with-gold-filtered-out
@@ -97,3 +97,30 @@ def pick_evidence_ids(
         gold_set = set(gold)
         return [eid for eid in retrieved if eid not in gold_set]
     return list(gold)
+
+
+class BM25CERetriever:
+    """Adapter wrapping vita/retriever's BM25 + cross-encoder rerank pipeline.
+
+    Exposes the same `.retrieve(claim_text, top_k) -> list[str]` interface as
+    the v3 FAISS retriever, so it's a drop-in replacement.
+
+    Construction is deferred (notebook builds the BM25 + CE objects, then
+    wraps them here) so this module stays free of heavyweight imports
+    (transformers, faiss, bm25s) and is fast to unit-test.
+    """
+
+    def __init__(
+        self,
+        bm25,
+        rerank_fn: Callable[[str, list, int], list],
+        bm25_top_k: int = 200,
+    ) -> None:
+        self.bm25 = bm25
+        self.rerank_fn = rerank_fn
+        self.bm25_top_k = bm25_top_k
+
+    def retrieve(self, claim_text: str, top_k: int = 5) -> list[str]:
+        candidates = self.bm25.search(claim_text, top_k=self.bm25_top_k)
+        ranked: list[tuple[str, float]] = self.rerank_fn(claim_text, candidates, top_k)
+        return [eid for eid, _score in ranked]
