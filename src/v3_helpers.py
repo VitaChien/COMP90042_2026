@@ -1,0 +1,51 @@
+"""Helpers used by the v3 CNN+BiLSTM+Multihead+Balanced notebook.
+
+Kept as importable module so unit tests can run without Colab/notebook setup.
+"""
+
+from __future__ import annotations
+
+import re
+from collections import Counter
+from typing import Dict, List
+
+
+def simple_tokenise(text: str) -> List[str]:
+    """Lowercase + strip non-alphanumeric (keep . , - % °) + whitespace split.
+
+    Note: Task 6 (#16) will add trailing-punctuation stripping; for now this
+    matches v3 behaviour exactly so the vocab change can be measured in
+    isolation.
+    """
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s\.\,\-\%°]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.split()
+
+
+def build_vocab_full_corpus(
+    train_claims: Dict,
+    evidence_corpus: Dict[str, str],
+    min_freq: int = 2,
+    max_vocab_size: int = 50_000,
+) -> Dict[str, int]:
+    """Build vocab over claims + entire evidence corpus.
+
+    v3 only counted train claims + their gold evidence (~6872 tokens).
+    This counts every passage in `evidence_corpus`, drastically reducing
+    UNK rate at predict time.
+    """
+    counter: Counter = Counter()
+
+    for instance in train_claims.values():
+        counter.update(simple_tokenise(instance["claim_text"]))
+
+    for text in evidence_corpus.values():
+        counter.update(simple_tokenise(text))
+
+    vocab = {"<PAD>": 0, "<UNK>": 1, "<CLAIM>": 2, "<EVIDENCE>": 3}
+    for word, freq in counter.most_common(max_vocab_size):
+        if freq >= min_freq and word not in vocab:
+            vocab[word] = len(vocab)
+
+    return vocab

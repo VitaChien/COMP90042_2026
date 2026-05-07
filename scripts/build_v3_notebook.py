@@ -147,11 +147,11 @@ if missing_required:
 CELLS.append(code('''# @title 1.3 · Imports, utilities, load data, build vocab, build/load FAISS index
 
 import json
-import re
 import random
-from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+from src.v3_helpers import build_vocab_full_corpus, simple_tokenise
 
 import numpy as np
 import torch
@@ -222,17 +222,6 @@ def save_json(obj, path: Path):
         json.dump(obj, f, indent=2)
 
 
-def normalise_text(text: str) -> str:
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\\s\\.\\,\\-\\%°]", " ", text)
-    text = re.sub(r"\\s+", " ", text).strip()
-    return text
-
-
-def simple_tokenise(text: str) -> List[str]:
-    return normalise_text(text).split()
-
-
 def get_claim_items(claims_json: Dict) -> List[Tuple[str, Dict]]:
     return list(claims_json.items())
 
@@ -263,21 +252,7 @@ print("Number of dev claims:", len(dev_claims))
 
 
 # ---------------- vocab ----------------
-def build_vocab(claims_json, evidence_corpus, min_freq=2, max_vocab_size=50000):
-    counter = Counter()
-    for claim_id, instance in claims_json.items():
-        counter.update(simple_tokenise(instance["claim_text"]))
-        for eid in instance.get("evidences", []):
-            if eid in evidence_corpus:
-                counter.update(simple_tokenise(evidence_corpus[eid]))
-    vocab = {"<PAD>": 0, "<UNK>": 1, "<CLAIM>": 2, "<EVIDENCE>": 3}
-    for word, freq in counter.most_common(max_vocab_size):
-        if freq >= min_freq and word not in vocab:
-            vocab[word] = len(vocab)
-    return vocab
-
-
-vocab = build_vocab(train_claims, evidence_corpus)
+vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=2, max_vocab_size=50_000)
 print("Vocab size:", len(vocab))
 
 
