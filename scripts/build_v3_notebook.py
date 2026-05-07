@@ -174,7 +174,7 @@ from sklearn.metrics import (
     f1_score,
 )
 from sklearn.utils.class_weight import compute_class_weight
-from torch.nn.utils.rnn import pad_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_sequence
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
@@ -529,7 +529,17 @@ class CNNBiLSTMMultiheadClassifier(nn.Module):
         conv_output = torch.cat(conv_outputs, dim=1)
 
         lstm_input = conv_output.transpose(1, 2)
-        lstm_output, _ = self.bilstm(lstm_input)
+        if attention_mask is not None:
+            lengths = attention_mask.sum(dim=1).cpu()
+            packed = pack_padded_sequence(
+                lstm_input, lengths, batch_first=True, enforce_sorted=False
+            )
+            packed_output, _ = self.bilstm(packed)
+            lstm_output, _ = pad_packed_sequence(
+                packed_output, batch_first=True, total_length=lstm_input.size(1)
+            )
+        else:
+            lstm_output, _ = self.bilstm(lstm_input)
 
         key_padding_mask = None
         if attention_mask is not None:

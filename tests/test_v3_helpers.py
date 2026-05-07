@@ -148,6 +148,33 @@ def test_bm25_ce_retriever_returns_ids_only():
     assert result == ["e1", "e2"], "must return only IDs in rerank order"
 
 
+def test_lstm_forward_no_pad_contamination():
+    """Two batches with identical content but different padding lengths must
+    produce identical pooled output (within fp tolerance) when the BiLSTM
+    uses pack_padded_sequence."""
+    import torch
+
+    from src.v3_helpers import build_minimal_classifier_for_testing
+
+    model = build_minimal_classifier_for_testing(vocab_size=50)
+    model.eval()
+
+    # Sequence A: tokens [1,2,3], no padding (length 3)
+    # Sequence B: same tokens [1,2,3] padded to length 6 with PAD=0
+    a_ids = torch.tensor([[1, 2, 3]])
+    a_mask = torch.tensor([[1, 1, 1]])
+    b_ids = torch.tensor([[1, 2, 3, 0, 0, 0]])
+    b_mask = torch.tensor([[1, 1, 1, 0, 0, 0]])
+
+    with torch.no_grad():
+        out_a = model(a_ids, a_mask)
+        out_b = model(b_ids, b_mask)
+
+    assert torch.allclose(
+        out_a, out_b, atol=1e-5
+    ), f"PAD contamination detected: max diff = {(out_a - out_b).abs().max():.2e}"
+
+
 def test_bm25_ce_retriever_passes_through_to_rerank():
     bm25 = _StubBM25([("e1", 0.5), ("e2", 0.4), ("e3", 0.3)])
     seen = {}

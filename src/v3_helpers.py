@@ -124,3 +124,52 @@ class BM25CERetriever:
         candidates = self.bm25.search(claim_text, top_k=self.bm25_top_k)
         ranked: list[tuple[str, float]] = self.rerank_fn(claim_text, candidates, top_k)
         return [eid for eid, _score in ranked]
+
+
+def build_minimal_classifier_for_testing(vocab_size: int = 50):
+    """Tiny CNN+BiLSTM+MHA+Pool model for the PAD-invariance unit test.
+
+    Mirrors the production CNNBiLSTMMultiheadClassifier but with shrunk dims
+    (embedding_dim=8, cnn_channels=4, lstm_hidden=8, num_heads=2) so unit
+    tests run in <1s on CPU.
+    """
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
+    class _AttnPool(nn.Module):
+        def __init__(self, dim):
+            super().__init__()
+            self.attn = nn.Linear(dim, 1)
+
+        def forward(self, hidden, mask):
+            scores = self.attn(hidden).squeeze(-1)
+            scores = scores.masked_fill(~mask.bool(), float("-inf"))
+            weights = torch.softmax(scores, dim=1)
+            return torch.sum(hidden * weights.unsqueeze(-1), dim=1)
+
+    class _Tiny(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.embedding = nn.Embedding(vocab_size, 8, padding_idx=0)
+            self.conv = nn.Conv1d(8, 4, kernel_size=3, padding=1)
+            self.lstm = nn.LSTM(4, 8, batch_first=True, bidirectional=True)
+            self.mha = nn.MultiheadAttention(16, 2, batch_first=True)
+            self.norm = nn.LayerNorm(16)
+            self.pool = _AttnPool(16)
+
+        def forward(self, input_ids, attention_mask):
+            emb = self.embedding(input_ids)
+            x = F.relu(self.conv(emb.transpose(1, 2))).transpose(1, 2)
+            lengths = attention_mask.sum(dim=1).cpu()
+            packed = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+            packed_out, _ = self.lstm(packed)
+            lstm_out, _ = pad_packed_sequence(packed_out, batch_first=True, total_length=x.size(1))
+            kpm = attention_mask == 0
+            attn_out, _ = self.mha(lstm_out, lstm_out, lstm_out, key_padding_mask=kpm)
+            attn_out = self.norm(attn_out + lstm_out)
+            return self.pool(attn_out, attention_mask)
+
+    torch.manual_seed(42)
+    return _Tiny()
