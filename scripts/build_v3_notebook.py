@@ -109,9 +109,17 @@ else:
 # Confirm what we actually have. If the SHA / message here doesn't match
 # the expected latest commit on GitHub, something's wrong (stale cache,
 # pushed-but-not-yet-on-GitHub, wrong BRANCH, etc.) — fix before continuing.
+# Note: subprocess.check_output (capture+print) — check_call's stdout is
+# eaten by Jupyter's kernel and shows nothing.
+head = subprocess.check_output(
+    ["git", "-C", PROJECT_ROOT, "log", "-1", "--oneline"], text=True
+).strip()
+status = subprocess.check_output(
+    ["git", "-C", PROJECT_ROOT, "status", "--short"], text=True
+).strip()
 print("\\n--- Repo state ---")
-subprocess.check_call(["git", "-C", PROJECT_ROOT, "log", "-1", "--oneline"])
-subprocess.check_call(["git", "-C", PROJECT_ROOT, "status", "--short"])
+print(f"HEAD: {head}")
+print(f"status:\\n{status if status else '  (clean)'}")
 print("------------------\\n")
 
 for sub in ("data", "cache", "checkpoints", "outputs"):
