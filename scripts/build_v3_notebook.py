@@ -100,7 +100,19 @@ repo_url = f"https://@github.com/{GITHUB_USER}/{REPO_NAME}.git"
 if not os.path.exists(PROJECT_ROOT):
     subprocess.check_call(["git", "clone", "-b", BRANCH, repo_url, PROJECT_ROOT])
 else:
-    subprocess.check_call(["git", "-C", PROJECT_ROOT, "pull"])
+    # Force-fetch and reset to remote tip — defends against Colab's
+    # /content cache holding a stale checkout from a prior session.
+    subprocess.check_call(["git", "-C", PROJECT_ROOT, "fetch", "origin", BRANCH])
+    subprocess.check_call(["git", "-C", PROJECT_ROOT, "checkout", BRANCH])
+    subprocess.check_call(["git", "-C", PROJECT_ROOT, "reset", "--hard", f"origin/{BRANCH}"])
+
+# Confirm what we actually have. If the SHA / message here doesn't match
+# the expected latest commit on GitHub, something's wrong (stale cache,
+# pushed-but-not-yet-on-GitHub, wrong BRANCH, etc.) — fix before continuing.
+print("\\n--- Repo state ---")
+subprocess.check_call(["git", "-C", PROJECT_ROOT, "log", "-1", "--oneline"])
+subprocess.check_call(["git", "-C", PROJECT_ROOT, "status", "--short"])
+print("------------------\\n")
 
 for sub in ("data", "cache", "checkpoints", "outputs"):
     src = f"{DRIVE_DATA}/{sub}"
