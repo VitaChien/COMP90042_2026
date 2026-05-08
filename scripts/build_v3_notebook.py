@@ -48,15 +48,18 @@ CELLS.append(
         "2. Add a GitHub Personal Access Token to Colab Secrets (only needed for private repos).\n"
         "3. On Google Drive at `/content/drive/MyDrive/COMP90042_2026/`, place the data:\n"
         "   - Required: `data/evidence.json` (~1 GB), `data/train-claims.json`, `data/dev-claims.json`, `data/test-claims-unlabelled.json`\n"
-        "   - Optional GPU path (saves ~2 min): `cache/bm25_index/` (pre-built BM25 index)\n"
-        "   - Required GPU path: `checkpoints/cross_encoder.pt` (trained cross-encoder; see cell 1.3 note)\n"
-        "   - Optional CPU path (saves ~1 hr): `cache/faiss/sentence-transformers_all-MiniLM-L6-v2.faiss` + matching `_evidence_ids.json`\n"
+        "   - **Preferred (skips live retrieval entirely):** `outputs/dev-retriever-only-k4-bm25200.json` + `outputs/test-retriever-only-k4-bm25200.json` (pre-computed BM25+CE top-4 per claim)\n"
+        "   - GPU live-retrieval path: `cache/bm25_index/` (saves ~2 min) + `checkpoints/cross_encoder.pt` (required if cache JSONs absent)\n"
+        "   - CPU live-retrieval path: `cache/faiss/sentence-transformers_all-MiniLM-L6-v2.faiss` + matching `_evidence_ids.json`\n"
         "\n"
         "Cell 1.1 clones the code from GitHub to `/content/COMP90042_2026` (Colab's fast local SSD) and symlinks `data/`, `cache/`, `checkpoints/`, `outputs/` from Drive — so code is git-managed and data persists across sessions.\n"
         "\n"
-        "**Pipeline (auto-selects on device):**\n"
-        "- GPU: BM25 top-200 → cross-encoder rerank → CNN+BiLSTM+MHA classifier\n"
-        "- CPU: FAISS dense (sentence-transformers/all-MiniLM-L6-v2) → CNN+BiLSTM+MHA classifier\n"
+        "**Retriever selection (cell 1.3, in priority order):**\n"
+        "1. Cached JSON — if `outputs/dev-...json` + `outputs/test-...json` exist → instant dict lookups, no live retrieval\n"
+        "2. GPU: BM25 top-200 → cross-encoder rerank\n"
+        "3. CPU: FAISS dense (sentence-transformers/all-MiniLM-L6-v2)\n"
+        "\n"
+        "Train uses gold evidence (`p_retrieved_for_training=0.0`), so the retriever is only invoked for dev/test — exactly what the cached JSONs cover.\n"
         "\n"
         "Trained with class-balanced cross-entropy."
     )
@@ -163,9 +166,11 @@ checks = [
     ("data/train-claims.json", "required"),
     ("data/dev-claims.json", "required"),
     ("data/test-claims-unlabelled.json", "required"),
-    ("cache/bm25_index", "optional (GPU path) — saves ~2 min"),
-    ("checkpoints/cross_encoder.pt", "optional (GPU path only) — see cell 1.3 note"),
-    ("cache/faiss", "optional (CPU path) — saves ~1 hr first-run encoding"),
+    ("outputs/dev-retriever-only-k4-bm25200.json", "PREFERRED — skips live retrieval"),
+    ("outputs/test-retriever-only-k4-bm25200.json", "PREFERRED — skips live retrieval"),
+    ("cache/bm25_index", "optional (GPU live path) — saves ~2 min"),
+    ("checkpoints/cross_encoder.pt", "optional (GPU live path only)"),
+    ("cache/faiss", "optional (CPU live path) — saves ~1 hr first-run encoding"),
 ]
 missing_required = False
 for rel, note in checks:
@@ -211,6 +216,7 @@ from src.retriever_bm25 import BM25Retriever, build_bm25_index
 from src.retriever_cross_enc import load_cross_encoder, rerank
 from src.v3_helpers import (
     BM25CERetriever,
+    CachedJSONRetriever,
     build_vocab_full_corpus,
     pick_evidence_ids,
     set_seed,
@@ -292,10 +298,28 @@ vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=2, max_v
 print("Vocab size:", len(vocab))
 
 
-# ---------------- Retriever: GPU = BM25 + Cross-encoder, CPU = FAISS dense ----------------
-# CE rerank is BERT forward over BM25 top-200 per claim — prohibitively slow
-# without GPU. FAISS dense (encode-once-cache) is hundreds of times faster on CPU.
-if device == "cuda":
+# ---------------- Retriever ----------------
+# Priority order:
+#   1. Pre-computed BM25+CE JSON caches (dev + test) — instant lookups, zero
+#      live model calls. The "right" path when the caches exist.
+#   2. GPU live BM25 top-200 -> cross-encoder rerank.
+#   3. CPU live FAISS dense (sentence-transformers/all-MiniLM-L6-v2).
+#
+# Train uses gold evidence (p_retrieved_for_training=0.0), so the retriever
+# is only invoked for dev evaluation + dev/test prediction — exactly what
+# the cached JSONs cover.
+RETRIEVAL_CACHE_PATHS = [
+    "outputs/dev-retriever-only-k4-bm25200.json",
+    "outputs/test-retriever-only-k4-bm25200.json",
+]
+existing_caches = [p for p in RETRIEVAL_CACHE_PATHS if Path(p).exists()]
+
+if existing_caches:
+    retriever = CachedJSONRetriever(cache_paths=existing_caches)
+    print(f"Retriever ready: cached JSON ({len(retriever)} claims, no live retrieval)")
+    for p in existing_caches:
+        print(f"  loaded: {p}")
+elif device == "cuda":
     cfg = Config()
     bm25_cache = cfg.cache_dir / "bm25_index"
     if not bm25_cache.exists():
@@ -321,7 +345,7 @@ if device == "cuda":
     retriever = BM25CERetriever(bm25=bm25, rerank_fn=_rerank_fn, bm25_top_k=200)
     print("Retriever ready: BM25 top-200 -> CE rerank (GPU)")
 else:
-    print("No GPU detected — falling back to FAISS dense retriever (CPU-friendly).")
+    print("No cache + no GPU — falling back to FAISS dense retriever (CPU-friendly).")
     from src.v3_helpers import FAISSDenseRetriever
     retriever = FAISSDenseRetriever(
         evidence_corpus=evidence_corpus,
@@ -1143,6 +1167,7 @@ CELLS.append(
         "\n"
         "| Class | Section | Purpose |\n"
         "|-------|---------|---------|\n"
+        "| `CachedJSONRetriever` | 1.3 | Pre-computed BM25+CE top-k served from JSON dict (preferred path) |\n"
         "| `BM25CERetriever` | 1.3 | Adapter wrapping BM25 top-200 candidate retrieval + cross-encoder reranking |\n"
         "| `CNNBiLSTMDataset` | 2.1 | Pairs claim with gold (train) or retrieved (predict) evidence |\n"
         "| `AttentionPooling` | 2.2 | Learnable weighted-sum pooling over sequence |\n"

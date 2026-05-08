@@ -135,6 +135,57 @@ class BM25CERetriever:
         return [eid for eid, _score in ranked]
 
 
+class CachedJSONRetriever:
+    """Retriever that returns pre-computed top-k evidence from a JSON cache.
+
+    The JSON files produced by the BM25+CE pipeline have shape
+    ``{claim_id: {"claim_text": ..., "claim_label": ..., "evidences": [...]}}``
+    — the ``evidences`` list is the already-reranked top-k. This class loads
+    one or more such files into a ``claim_text -> [evidence_ids]`` lookup,
+    so ``.retrieve(claim_text, top_k)`` is a dict access instead of a live
+    BM25 query + cross-encoder forward pass.
+
+    Use when:
+      - The cache covers every claim you'll predict on (e.g. dev + test), AND
+      - The cached top-k is >= the top-k you'll request at retrieve-time.
+
+    A ``fallback`` retriever (live BM25+CE or FAISS) handles any cache miss.
+    Without a fallback, a miss raises KeyError so the bug is loud, not silent.
+    """
+
+    def __init__(
+        self,
+        cache_paths,
+        fallback=None,
+    ) -> None:
+        import json
+        from pathlib import Path
+
+        if isinstance(cache_paths, str | Path):
+            cache_paths = [cache_paths]
+
+        self._cache: dict[str, list[str]] = {}
+        for path in cache_paths:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            for entry in data.values():
+                self._cache[entry["claim_text"]] = list(entry["evidences"])
+
+        self._fallback = fallback
+
+    def __len__(self) -> int:
+        return len(self._cache)
+
+    def retrieve(self, claim_text: str, top_k: int = 5) -> list[str]:
+        if claim_text in self._cache:
+            return self._cache[claim_text][:top_k]
+        if self._fallback is not None:
+            return self._fallback.retrieve(claim_text, top_k=top_k)
+        raise KeyError(
+            f"No cached retrieval for claim (and no fallback configured): " f"{claim_text[:80]!r}"
+        )
+
+
 class FAISSDenseRetriever:
     """Sentence-transformer + FAISS dense retrieval — CPU-friendly fallback.
 

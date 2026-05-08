@@ -4,6 +4,7 @@ import pytest
 
 from src.v3_helpers import (
     BM25CERetriever,
+    CachedJSONRetriever,
     build_vocab_full_corpus,
     pick_evidence_ids,
     select_best_epoch,
@@ -193,6 +194,71 @@ def test_bm25_ce_retriever_passes_through_to_rerank():
     assert seen["candidates"] == [("e1", 0.5), ("e2", 0.4), ("e3", 0.3)]
     assert seen["top_k"] == 2
     assert out == ["e1", "e2"]
+
+
+def test_cached_json_retriever_returns_cached_evidence(tmp_path):
+    import json
+
+    cache = {
+        "claim-1": {
+            "claim_text": "the sky is blue",
+            "claim_label": "SUPPORTS",
+            "evidences": ["e1", "e2", "e3", "e4"],
+        },
+        "claim-2": {
+            "claim_text": "fire is cold",
+            "claim_label": "REFUTES",
+            "evidences": ["e9", "e8", "e7", "e6"],
+        },
+    }
+    p = tmp_path / "cache.json"
+    p.write_text(json.dumps(cache))
+
+    r = CachedJSONRetriever(cache_paths=[p])
+    assert r.retrieve("the sky is blue", top_k=4) == ["e1", "e2", "e3", "e4"]
+    assert r.retrieve("the sky is blue", top_k=2) == ["e1", "e2"]
+    assert r.retrieve("fire is cold", top_k=10) == ["e9", "e8", "e7", "e6"]
+    assert len(r) == 2
+
+
+def test_cached_json_retriever_falls_back_on_miss(tmp_path):
+    import json
+
+    p = tmp_path / "cache.json"
+    p.write_text(json.dumps({"c1": {"claim_text": "known", "evidences": ["e1"]}}))
+
+    class _Fallback:
+        def retrieve(self, claim_text, top_k=5):
+            return [f"fallback-for-{claim_text}-k{top_k}"]
+
+    r = CachedJSONRetriever(cache_paths=p, fallback=_Fallback())
+    assert r.retrieve("known", top_k=1) == ["e1"]
+    assert r.retrieve("unknown", top_k=3) == ["fallback-for-unknown-k3"]
+
+
+def test_cached_json_retriever_raises_without_fallback(tmp_path):
+    import json
+
+    p = tmp_path / "cache.json"
+    p.write_text(json.dumps({"c1": {"claim_text": "known", "evidences": ["e1"]}}))
+
+    r = CachedJSONRetriever(cache_paths=[p])
+    with pytest.raises(KeyError):
+        r.retrieve("not in cache")
+
+
+def test_cached_json_retriever_merges_multiple_caches(tmp_path):
+    import json
+
+    a = tmp_path / "dev.json"
+    b = tmp_path / "test.json"
+    a.write_text(json.dumps({"c1": {"claim_text": "dev claim", "evidences": ["d1"]}}))
+    b.write_text(json.dumps({"c2": {"claim_text": "test claim", "evidences": ["t1"]}}))
+
+    r = CachedJSONRetriever(cache_paths=[a, b])
+    assert r.retrieve("dev claim") == ["d1"]
+    assert r.retrieve("test claim") == ["t1"]
+    assert len(r) == 2
 
 
 def test_simple_tokenise_strips_trailing_period():
