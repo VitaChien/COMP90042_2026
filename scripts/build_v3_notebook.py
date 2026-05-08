@@ -48,12 +48,17 @@ CELLS.append(
         "2. Add a GitHub Personal Access Token to Colab Secrets (only needed for private repos).\n"
         "3. On Google Drive at `/content/drive/MyDrive/COMP90042_2026/`, place the data:\n"
         "   - Required: `data/evidence.json` (~1 GB), `data/train-claims.json`, `data/dev-claims.json`, `data/test-claims-unlabelled.json`\n"
-        "   - Optional (saves ~2 min): `cache/bm25_index/` (pre-built BM25 index)\n"
-        "   - Required for retrieval: `checkpoints/cross_encoder.pt` (trained cross-encoder; see cell 1.3 note)\n"
+        "   - Optional GPU path (saves ~2 min): `cache/bm25_index/` (pre-built BM25 index)\n"
+        "   - Required GPU path: `checkpoints/cross_encoder.pt` (trained cross-encoder; see cell 1.3 note)\n"
+        "   - Optional CPU path (saves ~1 hr): `cache/faiss/sentence-transformers_all-MiniLM-L6-v2.faiss` + matching `_evidence_ids.json`\n"
         "\n"
         "Cell 1.1 clones the code from GitHub to `/content/COMP90042_2026` (Colab's fast local SSD) and symlinks `data/`, `cache/`, `checkpoints/`, `outputs/` from Drive — so code is git-managed and data persists across sessions.\n"
         "\n"
-        "**Pipeline:** BM25 top-200 retrieval + cross-encoder reranking (1.2M passages) → CNN+BiLSTM+Multi-head Attention classifier trained with class-balanced cross-entropy."
+        "**Pipeline (auto-selects on device):**\n"
+        "- GPU: BM25 top-200 → cross-encoder rerank → CNN+BiLSTM+MHA classifier\n"
+        "- CPU: FAISS dense (sentence-transformers/all-MiniLM-L6-v2) → CNN+BiLSTM+MHA classifier\n"
+        "\n"
+        "Trained with class-balanced cross-entropy."
     )
 )
 
@@ -116,6 +121,8 @@ subprocess.check_call(
         "torch",
         "transformers>=4.40",
         "bm25s[full]>=0.3",
+        "faiss-cpu",
+        "sentence-transformers>=2.7",
         "scikit-learn>=1.3",
         "tqdm>=4.65",
     ]
@@ -136,8 +143,9 @@ checks = [
     ("data/train-claims.json", "required"),
     ("data/dev-claims.json", "required"),
     ("data/test-claims-unlabelled.json", "required"),
-    ("cache/bm25_index", "optional — saves ~2 min"),
-    ("checkpoints/cross_encoder.pt", "required for retrieval — see cell 1.3 note"),
+    ("cache/bm25_index", "optional (GPU path) — saves ~2 min"),
+    ("checkpoints/cross_encoder.pt", "optional (GPU path only) — see cell 1.3 note"),
+    ("cache/faiss", "optional (CPU path) — saves ~1 hr first-run encoding"),
 ]
 missing_required = False
 for rel, note in checks:
@@ -264,31 +272,45 @@ vocab = build_vocab_full_corpus(train_claims, evidence_corpus, min_freq=2, max_v
 print("Vocab size:", len(vocab))
 
 
-# ---------------- BM25 + Cross-encoder retriever (replaces FAISS) ----------------
-cfg = Config()
-bm25_cache = cfg.cache_dir / "bm25_index"
-if not bm25_cache.exists():
-    print("Building BM25 index (one-time, ~2 min)...")
-    build_bm25_index(evidence_corpus, bm25_cache)
+# ---------------- Retriever: GPU = BM25 + Cross-encoder, CPU = FAISS dense ----------------
+# CE rerank is BERT forward over BM25 top-200 per claim — prohibitively slow
+# without GPU. FAISS dense (encode-once-cache) is hundreds of times faster on CPU.
+if device == "cuda":
+    cfg = Config()
+    bm25_cache = cfg.cache_dir / "bm25_index"
+    if not bm25_cache.exists():
+        print("Building BM25 index (one-time, ~2 min)...")
+        build_bm25_index(evidence_corpus, bm25_cache)
 
-bm25 = BM25Retriever.from_cache(bm25_cache)
+    bm25 = BM25Retriever.from_cache(bm25_cache)
 
-ce_ckpt = cfg.ckpt_dir / "cross_encoder.pt"
-if not ce_ckpt.exists():
-    raise FileNotFoundError(
-        f"Cross-encoder checkpoint missing: {ce_ckpt}\\n"
-        "Run scripts/train_cross_encoder.py first or copy a pretrained one."
+    ce_ckpt = cfg.ckpt_dir / "cross_encoder.pt"
+    if not ce_ckpt.exists():
+        raise FileNotFoundError(
+            f"Cross-encoder checkpoint missing: {ce_ckpt}\\n"
+            "Run scripts/train_cross_encoder.py first or copy a pretrained one."
+        )
+    ce_tok, ce_model = load_cross_encoder(cfg.cross_encoder_model, ce_ckpt, device=device)
+
+    def _rerank_fn(claim_text, candidates, top_k):
+        return rerank(
+            ce_model, ce_tok, claim_text, candidates, evidence_corpus,
+            top_k=top_k, batch_size=64, device=device, max_len=cfg.ce_max_len,
+        )
+
+    retriever = BM25CERetriever(bm25=bm25, rerank_fn=_rerank_fn, bm25_top_k=200)
+    print("Retriever ready: BM25 top-200 -> CE rerank (GPU)")
+else:
+    print("No GPU detected — falling back to FAISS dense retriever (CPU-friendly).")
+    from src.v3_helpers import FAISSDenseRetriever
+    retriever = FAISSDenseRetriever(
+        evidence_corpus=evidence_corpus,
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        cache_dir="cache/faiss",
+        batch_size=64,
+        device=device,
     )
-ce_tok, ce_model = load_cross_encoder(cfg.cross_encoder_model, ce_ckpt, device=device)
-
-def _rerank_fn(claim_text, candidates, top_k):
-    return rerank(
-        ce_model, ce_tok, claim_text, candidates, evidence_corpus,
-        top_k=top_k, batch_size=64, device=device, max_len=cfg.ce_max_len,
-    )
-
-retriever = BM25CERetriever(bm25=bm25, rerank_fn=_rerank_fn, bm25_top_k=200)
-print("Retriever ready: BM25 top-200 -> CE rerank")""")
+    print("Retriever ready: FAISS dense (CPU)")""")
 )
 
 CELLS.append(

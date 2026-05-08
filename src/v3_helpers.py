@@ -135,6 +135,91 @@ class BM25CERetriever:
         return [eid for eid, _score in ranked]
 
 
+class FAISSDenseRetriever:
+    """Sentence-transformer + FAISS dense retrieval — CPU-friendly fallback.
+
+    On first construction encodes the entire evidence corpus (slow:
+    ~1 hr on CPU for 1.2M passages) and writes a FAISS index to
+    `cache_dir`. Subsequent constructions load from cache instantly.
+
+    Used when no GPU is available, where running BERT cross-encoder over
+    BM25 top-200 per claim is prohibitively slow. FAISS dense is hundreds
+    of times faster on CPU because the heavy work (encoding the corpus)
+    is amortised across runs via the on-disk cache.
+
+    Same `.retrieve(claim_text, top_k) -> list[str]` interface as
+    `BM25CERetriever`, so it's a drop-in replacement.
+
+    Heavy deps (`faiss`, `sentence_transformers`) are lazy-imported in
+    `__init__` to keep this module fast to import for unit tests.
+    """
+
+    def __init__(
+        self,
+        evidence_corpus: dict,
+        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+        cache_dir: str = "cache/faiss",
+        batch_size: int = 64,
+        device: str | None = None,
+        force_rebuild: bool = False,
+    ) -> None:
+        import json
+        from pathlib import Path
+
+        import faiss
+        from sentence_transformers import SentenceTransformer
+
+        self._faiss = faiss
+        self.evidence_corpus = evidence_corpus
+        self.evidence_ids = list(evidence_corpus.keys())
+        self.evidence_texts = [evidence_corpus[eid] for eid in self.evidence_ids]
+
+        cache = Path(cache_dir)
+        cache.mkdir(parents=True, exist_ok=True)
+        safe_name = model_name.replace("/", "_")
+        self.index_path = cache / f"{safe_name}.faiss"
+        self.ids_path = cache / f"{safe_name}_evidence_ids.json"
+
+        self.model = SentenceTransformer(model_name, device=device)
+
+        if self.index_path.exists() and self.ids_path.exists() and not force_rebuild:
+            with self.ids_path.open("r", encoding="utf-8") as f:
+                cached_ids = json.load(f)
+            if cached_ids == self.evidence_ids:
+                self.index = faiss.read_index(str(self.index_path))
+                print(f"Loaded cached FAISS index ({self.index.ntotal} vectors).")
+                return
+            print("Cached IDs mismatch current evidence — rebuilding.")
+
+        print(
+            f"Encoding {len(self.evidence_texts)} evidence passages "
+            f"(slow: ~1 hr on CPU, one-time)..."
+        )
+        embeddings = self.model.encode(
+            self.evidence_texts,
+            batch_size=batch_size,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        ).astype("float32")
+
+        self.index = faiss.IndexFlatIP(embeddings.shape[1])
+        self.index.add(embeddings)
+        faiss.write_index(self.index, str(self.index_path))
+        with self.ids_path.open("w", encoding="utf-8") as f:
+            json.dump(self.evidence_ids, f)
+        print(f"FAISS index built ({self.index.ntotal} vectors) and cached.")
+
+    def retrieve(self, claim_text: str, top_k: int = 5) -> list[str]:
+        emb = self.model.encode(
+            [claim_text],
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        ).astype("float32")
+        _scores, indices = self.index.search(emb, top_k)
+        return [self.evidence_ids[i] for i in indices[0]]
+
+
 def build_minimal_classifier_for_testing(vocab_size: int = 50):
     """Tiny CNN+BiLSTM+MHA+Pool model for the PAD-invariance unit test.
 
