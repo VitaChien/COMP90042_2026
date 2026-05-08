@@ -684,6 +684,9 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     max_evidence=4,
     device="cpu",
     seed: int = 42,
+    resume_from=None,
+    checkpoint_dir="checkpoints",
+    checkpoint_prefix="cnn_bilstm_multihead_balanced",
 ):
     set_seed(seed)
 
@@ -774,8 +777,29 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
 
     best_macro_f1 = 0.0
     best_state_dict = None
+    start_epoch = 0
 
-    epoch_bar = tqdm(range(epochs), desc="Epochs", position=0)
+    # ---------------- resume support ----------------
+    # Each epoch saves a checkpoint at
+    #   {checkpoint_dir}/{checkpoint_prefix}_epoch{N}.pt
+    # where N is the COMPLETED epoch count (1..epochs). Pass resume_from
+    # pointing to one of these files to skip already-done epochs.
+    ckpt_dir = Path(checkpoint_dir)
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    if resume_from is not None:
+        print(f"Resuming from {resume_from} ...")
+        ckpt = torch.load(resume_from, map_location=device, weights_only=False)
+        model.load_state_dict(ckpt["model"])
+        optimiser.load_state_dict(ckpt["optimiser"])
+        start_epoch = ckpt["epoch"]
+        best_macro_f1 = ckpt["best_macro_f1"]
+        best_state_dict = ckpt.get("best_state_dict")
+        print(
+            f"Resumed: starting at epoch {start_epoch + 1}/{epochs}, "
+            f"best retrieved-dev F1 so far = {best_macro_f1:.4f}"
+        )
+
+    epoch_bar = tqdm(range(start_epoch, epochs), desc="Epochs", position=0)
     for epoch in epoch_bar:
         model.train()
         total_loss = 0.0
@@ -829,6 +853,20 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
             }
             tqdm.write(f"  -> new best (retrieved-dev F1={best_macro_f1:.4f}) saved")
 
+        # Per-epoch checkpoint — survives Colab disconnects.
+        epoch_ckpt_path = ckpt_dir / f"{checkpoint_prefix}_epoch{epoch + 1}.pt"
+        torch.save(
+            {
+                "model": model.state_dict(),
+                "optimiser": optimiser.state_dict(),
+                "epoch": epoch + 1,
+                "best_macro_f1": best_macro_f1,
+                "best_state_dict": best_state_dict,
+            },
+            epoch_ckpt_path,
+        )
+        tqdm.write(f"  Saved checkpoint: {epoch_ckpt_path}")
+
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
 
@@ -837,6 +875,15 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
 
 CELLS.append(
     code("""# @title 2.4 · Run training (10 epochs, class-balanced loss)
+#
+# To resume after a Colab disconnect:
+#   1. Re-run cell 1.1 (git fetch + checkout will skip if already current)
+#   2. Re-run cells 1.2, 1.3, 2.1, 2.2, 2.3 to rebuild dataset/model classes
+#   3. Set RESUME_FROM below to the latest epoch checkpoint, e.g.
+#      "checkpoints/cnn_bilstm_multihead_balanced_epoch3.pt"
+#   4. Re-run this cell — training continues from epoch 4.
+
+RESUME_FROM = None  # e.g. "checkpoints/cnn_bilstm_multihead_balanced_epoch3.pt"
 
 cnn_bilstm_multihead_model = train_cnn_bilstm_multikernel_multihead_balanced(
     train_claims=train_claims,
@@ -850,6 +897,7 @@ cnn_bilstm_multihead_model = train_cnn_bilstm_multikernel_multihead_balanced(
     max_len=256,
     max_evidence=4,
     device=device,
+    resume_from=RESUME_FROM,
 )
 
 # Save best weights
