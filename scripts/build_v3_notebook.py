@@ -560,13 +560,13 @@ class CNNBiLSTMMultiheadClassifier(nn.Module):
 CELLS.append(
     code("""# @title 2.3 · Evaluate fn + class weights + train fn (class-balanced cross-entropy)
 
-def evaluate_cnn_bilstm(model, dataloader, device="cpu"):
+def evaluate_cnn_bilstm(model, dataloader, device="cpu", desc="eval"):
     model.eval()
     all_preds = []
     all_labels = []
 
     with torch.no_grad():
-        for batch in tqdm(dataloader):
+        for batch in tqdm(dataloader, desc=desc, leave=False):
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device).long()
@@ -733,13 +733,18 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     best_macro_f1 = 0.0
     best_state_dict = None
 
-    for epoch in range(epochs):
-        print(f"\\nEpoch {epoch + 1}/{epochs}")
-
+    epoch_bar = tqdm(range(epochs), desc="Epochs", position=0)
+    for epoch in epoch_bar:
         model.train()
         total_loss = 0.0
 
-        for batch in tqdm(train_loader):
+        batch_bar = tqdm(
+            train_loader,
+            desc=f"Epoch {epoch + 1}/{epochs} train",
+            leave=False,
+            position=1,
+        )
+        for batch in batch_bar:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
@@ -753,26 +758,34 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
             optimiser.step()
 
             total_loss += loss.item()
+            batch_bar.set_postfix(loss=f"{loss.item():.4f}")
 
         avg_loss = total_loss / len(train_loader)
-        print("Training loss:", round(avg_loss, 4))
 
         dev_acc_gold, dev_macro_f1_gold, _ = evaluate_cnn_bilstm(
-            model, dev_loader, device
+            model, dev_loader, device, desc="dev (gold)"
         )
         dev_acc_ret, dev_macro_f1_ret, _ = evaluate_cnn_bilstm(
-            model, dev_loader_retrieved, device
+            model, dev_loader_retrieved, device, desc="dev (retrieved)"
         )
 
-        print(f"Gold-dev      acc={dev_acc_gold:.4f}  macroF1={dev_macro_f1_gold:.4f}")
-        print(f"Retrieved-dev acc={dev_acc_ret:.4f}  macroF1={dev_macro_f1_ret:.4f}")
+        epoch_bar.set_postfix(
+            loss=f"{avg_loss:.4f}",
+            gold_f1=f"{dev_macro_f1_gold:.4f}",
+            ret_f1=f"{dev_macro_f1_ret:.4f}",
+        )
+        tqdm.write(
+            f"Epoch {epoch + 1}/{epochs}: loss={avg_loss:.4f}  "
+            f"gold-dev acc={dev_acc_gold:.4f} F1={dev_macro_f1_gold:.4f}  "
+            f"retrieved-dev acc={dev_acc_ret:.4f} F1={dev_macro_f1_ret:.4f}"
+        )
 
         if dev_macro_f1_ret > best_macro_f1:
             best_macro_f1 = dev_macro_f1_ret
             best_state_dict = {
                 k: v.cpu().clone() for k, v in model.state_dict().items()
             }
-            print("New best (retrieved-dev) saved.")
+            tqdm.write(f"  -> new best (retrieved-dev F1={best_macro_f1:.4f}) saved")
 
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
