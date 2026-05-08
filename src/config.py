@@ -27,10 +27,10 @@ class Config:
 
     # cross-encoder
     cross_encoder_model: str = "bert-base-uncased"
-    ce_max_len: int = 256
+    ce_max_len: int = 128
     ce_lr: float = 2e-5
     ce_epochs: int = 2
-    ce_batch_size: int = 64
+    ce_batch_size: int = 128
 
     # classifier
     classifier_model: str = "roberta-base"
