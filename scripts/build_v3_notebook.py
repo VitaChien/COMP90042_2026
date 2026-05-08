@@ -687,7 +687,14 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     resume_from=None,
     checkpoint_dir="checkpoints",
     checkpoint_prefix="cnn_bilstm_multihead_balanced",
+    p_retrieved_for_training: float = 0.0,
 ):
+    # Note: p_retrieved_for_training>0 swaps gold for retrieved hard-negatives
+    # while KEEPING the original (gold-derived) label. That trains the model
+    # to ignore evidence — for SUPPORTS claims it sees both gold-supporting
+    # AND distractor evidence both labelled SUPPORTS, so the loss-minimising
+    # solution is "predict from claim alone". Default kept at 0.0 until the
+    # label-flipping rewrite (Task 8 follow-up) is in.
     set_seed(seed)
 
     train_dataset = CNNBiLSTMDataset(
@@ -699,7 +706,7 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
         use_gold_evidence=True,
         retriever=retriever,
         retrieval_top_k=max_evidence + 4,
-        p_retrieved_for_training=0.5,
+        p_retrieved_for_training=p_retrieved_for_training,
         is_test=False,
         seed=seed,
     )
