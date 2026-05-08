@@ -775,20 +775,18 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
     best_macro_f1 = 0.0
     best_state_dict = None
 
-    for epoch in range(epochs):
-        print(f"\\n=== Epoch {epoch + 1}/{epochs} ===", flush=True)
-
+    epoch_bar = tqdm(range(epochs), desc="Epochs", position=0)
+    for epoch in epoch_bar:
         model.train()
         total_loss = 0.0
 
-        # Single tqdm bar per epoch — no nested positions (Colab renders
-        # poorly with position=). mininterval=0.5 keeps the bar visibly
-        # ticking even on slow batches.
-        for batch in tqdm(
+        batch_bar = tqdm(
             train_loader,
-            desc=f"train (epoch {epoch + 1})",
-            mininterval=0.5,
-        ):
+            desc=f"Epoch {epoch + 1}/{epochs} train",
+            leave=False,
+            position=1,
+        )
+        for batch in batch_bar:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
@@ -802,9 +800,9 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
             optimiser.step()
 
             total_loss += loss.item()
+            batch_bar.set_postfix(loss=f"{loss.item():.4f}")
 
         avg_loss = total_loss / len(train_loader)
-        print(f"  train loss = {avg_loss:.4f}", flush=True)
 
         dev_acc_gold, dev_macro_f1_gold, _ = evaluate_cnn_bilstm(
             model, dev_loader, device, desc="dev (gold)"
@@ -813,13 +811,15 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
             model, dev_loader_retrieved, device, desc="dev (retrieved)"
         )
 
-        print(
-            f"  gold-dev      acc={dev_acc_gold:.4f}  macroF1={dev_macro_f1_gold:.4f}",
-            flush=True,
+        epoch_bar.set_postfix(
+            loss=f"{avg_loss:.4f}",
+            gold_f1=f"{dev_macro_f1_gold:.4f}",
+            ret_f1=f"{dev_macro_f1_ret:.4f}",
         )
-        print(
-            f"  retrieved-dev acc={dev_acc_ret:.4f}  macroF1={dev_macro_f1_ret:.4f}",
-            flush=True,
+        tqdm.write(
+            f"Epoch {epoch + 1}/{epochs}: loss={avg_loss:.4f}  "
+            f"gold-dev acc={dev_acc_gold:.4f} F1={dev_macro_f1_gold:.4f}  "
+            f"retrieved-dev acc={dev_acc_ret:.4f} F1={dev_macro_f1_ret:.4f}"
         )
 
         if dev_macro_f1_ret > best_macro_f1:
@@ -827,7 +827,7 @@ def train_cnn_bilstm_multikernel_multihead_balanced(
             best_state_dict = {
                 k: v.cpu().clone() for k, v in model.state_dict().items()
             }
-            print(f"  -> new best (retrieved-dev F1={best_macro_f1:.4f}) saved", flush=True)
+            tqdm.write(f"  -> new best (retrieved-dev F1={best_macro_f1:.4f}) saved")
 
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
