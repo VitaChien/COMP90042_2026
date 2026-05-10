@@ -56,23 +56,14 @@ def run_baseline(claims_path: Path, output_path: Path, top_k: int) -> dict:
     return preds
 
 
-def run_retriever_only(
-    claims_path: Path, output_path: Path, top_k: int, bm25_top_k: int | None = None
-) -> dict:
-    """BM25 top-200 -> cross-encoder rerank top-K. Label still random.
+def load_retriever_components(cfg: Config | None = None, device: str | None = None):
+    """Load BM25 index, cross-encoder, and evidence corpus once.
 
-    Random label keeps A constant (~0.25) so any movement in F or HM
-    relative to the bm25-random baseline is attributable to the cross-encoder
-    re-ranker alone.
+    Returned tuple can be passed to ``run_retriever_only`` to avoid reloading
+    the ~1 GB evidence corpus on each split.
     """
-    cfg = Config()
-    set_seed(cfg.seed)
-    device = _pick_device()
-    log.info("Reranking on device: %s", device)
-
-    effective_bm25_top_k = bm25_top_k if bm25_top_k is not None else cfg.bm25_top_k
-    log.info("BM25 pool size: %d", effective_bm25_top_k)
-
+    cfg = cfg or Config()
+    device = device or _pick_device()
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     ce_tok, ce_model = load_cross_encoder(
         cfg.cross_encoder_model,
@@ -82,6 +73,52 @@ def run_retriever_only(
     log.info("Loading evidence corpus ...")
     with timer("load_evidence", log):
         evidence = load_evidence(cfg.evidence_path)
+    return bm25, ce_tok, ce_model, evidence, device
+
+
+def run_retriever_only(
+    claims_path: Path,
+    output_path: Path,
+    top_k: int,
+    bm25_top_k: int | None = None,
+    *,
+    bm25: BM25Retriever | None = None,
+    ce_tok=None,
+    ce_model=None,
+    evidence: dict | None = None,
+    device: str | None = None,
+) -> dict:
+    """BM25 top-200 -> cross-encoder rerank top-K. Label still random.
+
+    Random label keeps A constant (~0.25) so any movement in F or HM
+    relative to the bm25-random baseline is attributable to the cross-encoder
+    re-ranker alone.
+
+    Heavy components (``bm25``, ``ce_tok``, ``ce_model``, ``evidence``) may be
+    pre-loaded via ``load_retriever_components`` and passed in to avoid
+    repeated loads when running multiple splits in one session.
+    """
+    cfg = Config()
+    set_seed(cfg.seed)
+    if device is None:
+        device = _pick_device()
+    log.info("Reranking on device: %s", device)
+
+    effective_bm25_top_k = bm25_top_k if bm25_top_k is not None else cfg.bm25_top_k
+    log.info("BM25 pool size: %d", effective_bm25_top_k)
+
+    if bm25 is None:
+        bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
+    if ce_tok is None or ce_model is None:
+        ce_tok, ce_model = load_cross_encoder(
+            cfg.cross_encoder_model,
+            cfg.ckpt_dir / "cross_encoder.pt",
+            device=device,
+        )
+    if evidence is None:
+        log.info("Loading evidence corpus ...")
+        with timer("load_evidence", log):
+            evidence = load_evidence(cfg.evidence_path)
     claims = load_claims(claims_path)
 
     preds: dict[str, dict] = {}
@@ -111,7 +148,7 @@ def run_retriever_only(
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--split", choices=["dev", "test"], default="dev")
+    p.add_argument("--split", choices=["train", "dev", "test"], default="dev")
     p.add_argument("--top-k", type=int, default=Config().final_top_k)
     p.add_argument(
         "--mode",
@@ -128,7 +165,12 @@ def main() -> None:
     args = p.parse_args()
 
     cfg = Config()
-    claims_path = cfg.dev_path if args.split == "dev" else cfg.test_path
+    split_to_path = {
+        "train": cfg.train_path,
+        "dev": cfg.dev_path,
+        "test": cfg.test_path,
+    }
+    claims_path = split_to_path[args.split]
     bm25_suffix = f"-bm25{args.bm25_top_k}" if args.bm25_top_k is not None else ""
     output_path = cfg.output_dir / f"{args.split}-{args.mode}-k{args.top_k}{bm25_suffix}.json"
 
@@ -137,10 +179,11 @@ def main() -> None:
     elif args.mode == "retriever-only":
         run_retriever_only(claims_path, output_path, args.top_k, bm25_top_k=args.bm25_top_k)
 
-    if args.split == "dev":
-        m = evaluate_predictions(output_path, cfg.dev_path)
+    if args.split in {"train", "dev"}:
+        m = evaluate_predictions(output_path, claims_path)
         log.info(
-            "F=%.4f  A=%.4f  HM=%.4f",
+            "[%s] F=%.4f  A=%.4f  HM=%.4f",
+            args.split,
             m["evidence_f"],
             m["claim_accuracy"],
             m["harmonic_mean"],
