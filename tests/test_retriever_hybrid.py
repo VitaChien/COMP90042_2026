@@ -68,7 +68,7 @@ def test_rrf_ranks_are_one_indexed():
     assert fused[0][1] == pytest.approx(1.0 / 61.0)
 
 
-def test_hybrid_retriever_search(monkeypatch):
+def test_hybrid_retriever_search():
     """HybridRetriever calls both retrievers and fuses results."""
     from src.retriever_hybrid import HybridRetriever
 
@@ -83,5 +83,4 @@ def test_hybrid_retriever_search(monkeypatch):
     hybrid = HybridRetriever(bm25=bm25, dense=dense, k_rrf=60)
     hits = hybrid.search("any claim", top_k=2)
     assert len(hits) == 2
-    eids = {eid for eid, _ in hits}
-    assert "e-2" in eids  # in both -> highest fused score
+    assert hits[0][0] == "e-2"  # appears in both -> highest fused RRF score
