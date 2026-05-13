@@ -20,11 +20,13 @@ from src.utils import get_logger, timer
 log = get_logger("build-dense")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--force", action="store_true", help="rebuild even if cache exists")
-    args = p.parse_args()
+    # When called from a notebook (no CLI), pass argv=[] to skip Jupyter's
+    # injected `-f kernel.json` arg. CLI users get the default sys.argv parse.
+    args = p.parse_args(argv)
 
     cfg = Config()
     if cfg.dense_index_path.exists() and cfg.dense_ids_path.exists() and not args.force:
