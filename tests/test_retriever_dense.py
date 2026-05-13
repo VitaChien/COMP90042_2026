@@ -96,3 +96,36 @@ def test_dense_retriever_top_k_clipped_to_index_size(tmp_path):
     )
     hits = ret.search("q", top_k=999)
     assert len(hits) <= 4
+
+
+def test_build_dense_index_smoke(tmp_path, monkeypatch):
+    """End-to-end: stub encoder + tiny corpus -> readable FAISS index."""
+    from src.retriever_dense import DenseRetriever, build_dense_index
+
+    corpus = {
+        "evidence-A": "ice melting",
+        "evidence-B": "ocean temperature",
+        "evidence-C": "carbon emissions",
+        "evidence-D": "boston city",
+    }
+    rng = np.random.default_rng(42)
+
+    class RandomEncoder:
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    index_path = tmp_path / "smoke.faiss"
+    ids_path = tmp_path / "smoke.ids.json"
+    build_dense_index(corpus, RandomEncoder(), index_path, ids_path, batch_size=2)
+    assert index_path.exists()
+    assert ids_path.exists()
+
+    # Reload and search
+    ret = DenseRetriever.from_cache(index_path, ids_path, RandomEncoder(), query_prefix="")
+    hits = ret.search("anything", top_k=4)
+    assert len(hits) == 4
+    assert {eid for eid, _ in hits} == set(corpus)
