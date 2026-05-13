@@ -146,15 +146,80 @@ def run_retriever_only(
     return preds
 
 
+def load_hybrid_components(cfg: Config | None = None, device: str | None = None):
+    """Load BM25, dense, CE, and evidence corpus once for hybrid inference."""
+    from sentence_transformers import SentenceTransformer
+
+    from src.retriever_dense import DenseRetriever
+    from src.retriever_hybrid import HybridRetriever
+
+    cfg = cfg or Config()
+    device = device or _pick_device()
+    bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
+    encoder = SentenceTransformer(cfg.dense_encoder, device=device)
+    dense = DenseRetriever.from_cache(cfg.dense_index_path, cfg.dense_ids_path, encoder)
+    hybrid = HybridRetriever(
+        bm25=bm25, dense=dense, k_rrf=cfg.rrf_k,
+        bm25_top_k=cfg.bm25_top_k, dense_top_k=cfg.dense_top_k,
+    )
+    ce_tok, ce_model = load_cross_encoder(
+        cfg.cross_encoder_model,
+        cfg.ckpt_dir / "cross_encoder.pt",
+        device=device,
+    )
+    log.info("Loading evidence corpus ...")
+    with timer("load_evidence", log):
+        evidence = load_evidence(cfg.evidence_path)
+    return hybrid, ce_tok, ce_model, evidence, device
+
+
+def run_hybrid_retriever(
+    claims_path: Path,
+    output_path: Path,
+    top_k: int,
+    *,
+    hybrid=None,
+    ce_tok=None,
+    ce_model=None,
+    evidence: dict | None = None,
+    device: str | None = None,
+) -> dict:
+    """Hybrid (BM25+Dense RRF) top-N -> cross-encoder rerank top-K."""
+    cfg = Config()
+    set_seed(cfg.seed)
+    if device is None:
+        device = _pick_device()
+    log.info("Reranking on device: %s", device)
+    if hybrid is None or ce_tok is None or ce_model is None or evidence is None:
+        hybrid, ce_tok, ce_model, evidence, device = load_hybrid_components(cfg, device)
+
+    claims = load_claims(claims_path)
+    preds: dict[str, dict] = {}
+    with timer(f"Hybrid pipeline x{len(claims)}", log):
+        for cid, claim in tqdm(claims.items(), desc="hybrid-rerank"):
+            cand = hybrid.search(claim.claim_text, top_k=cfg.hybrid_pool_size)
+            ranked = rerank(
+                ce_model, ce_tok, claim.claim_text, cand, evidence,
+                top_k=top_k, batch_size=64, device=device, max_len=cfg.ce_max_len,
+            )
+            preds[cid] = {
+                "claim_text": claim.claim_text,
+                "claim_label": random.choice(cfg.label_names),
+                "evidences": [eid for eid, _ in ranked],
+            }
+    save_json(preds, output_path)
+    log.info("Saved %d predictions -> %s", len(preds), output_path)
+    return preds
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--split", choices=["train", "dev", "test"], default="dev")
     p.add_argument("--top-k", type=int, default=Config().final_top_k)
     p.add_argument(
         "--mode",
-        choices=["bm25-random", "retriever-only"],
+        choices=["bm25-random", "retriever-only", "hybrid-retriever"],
         default="bm25-random",
-        help="Phase 4 will add 'full' and 'oracle'.",
     )
     p.add_argument(
         "--bm25-top-k",
@@ -178,6 +243,8 @@ def main() -> None:
         run_baseline(claims_path, output_path, args.top_k)
     elif args.mode == "retriever-only":
         run_retriever_only(claims_path, output_path, args.top_k, bm25_top_k=args.bm25_top_k)
+    elif args.mode == "hybrid-retriever":
+        run_hybrid_retriever(claims_path, output_path, args.top_k)
 
     if args.split in {"train", "dev"}:
         m = evaluate_predictions(output_path, claims_path)
