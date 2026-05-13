@@ -25,6 +25,14 @@ class Config:
     hard_negatives_per_pos: int = 8
     hard_negatives_bm25_top_k: int = 200
 
+    # dense retrieval (hybrid)
+    dense_encoder: str = "BAAI/bge-base-en-v1.5"
+    dense_index_path: Path = field(init=False)
+    dense_ids_path: Path = field(init=False)
+    dense_top_k: int = 200
+    rrf_k: int = 60
+    hybrid_pool_size: int = 200
+
     # cross-encoder
     cross_encoder_model: str = "bert-base-uncased"
     ce_max_len: int = 128
@@ -49,6 +57,8 @@ class Config:
         self.dev_path = self.data_dir / "dev-claims.json"
         self.test_path = self.data_dir / "test-claims-unlabelled.json"
         self.cache_dir = self.repo_root / "cache"
+        self.dense_index_path = self.cache_dir / "dense_index_bge.faiss"
+        self.dense_ids_path = self.cache_dir / "dense_index_bge.ids.json"
         self.ckpt_dir = self.repo_root / "checkpoints"
         self.output_dir = self.repo_root / "outputs"
         for d in (self.cache_dir, self.ckpt_dir, self.output_dir):
