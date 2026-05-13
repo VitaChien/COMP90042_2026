@@ -33,29 +33,51 @@ def build_dense_index(
     index_path: Path | str,
     ids_path: Path | str,
     batch_size: int = 128,
+    checkpoint_every: int = 50,
 ) -> None:
     """Encode evidence corpus, build a FAISS IndexFlatIP, persist to disk.
 
-    ``encoder`` must expose ``.encode(texts, normalize_embeddings=True,
-    convert_to_numpy=True)`` (sentence-transformers SentenceTransformer
-    matches this contract).
+    Streams chunks directly into FAISS to bound peak RAM (np.vstack on 1.2M x
+    768 would briefly hold ~7 GB and OOM on Colab T4). Writes a checkpoint
+    every ``checkpoint_every`` chunks so a Colab disconnect mid-encode loses
+    at most that many chunks of work.
+
+    Resume: if ``<index_path>`` and ``<index_path>.progress.json`` both exist
+    with a matching ``n_total``, load the partial index and continue from
+    ``next_doc_idx``. On normal completion the progress file is deleted, so a
+    subsequent ``mod.main()`` sees a finished index and skips.
     """
     index_path = Path(index_path)
     ids_path = Path(ids_path)
+    progress_path = index_path.with_suffix(".progress.json")
     index_path.parent.mkdir(parents=True, exist_ok=True)
 
     ids = list(evidence.keys())
     texts = [evidence[i] for i in ids]
     n = len(ids)
-    log.info("Encoding %d evidences for dense retrieval ...", n)
 
-    # Stream each chunk straight into FAISS so we never hold the full N x D
-    # embedding matrix in RAM. Without streaming, np.vstack(chunks) + index.add
-    # briefly hold ~2x the 3.7 GB embedding array (n=1.2M, dim=768) and OOM on
-    # Colab T4 (12.7 GB host RAM). Streaming keeps peak chunk RAM ~50-200 MB.
     index: faiss.Index | None = None
-    for start in range(0, n, batch_size * 32):
-        end = min(start + batch_size * 32, n)
+    start_idx = 0
+    if index_path.exists() and progress_path.exists():
+        progress = json.loads(progress_path.read_text())
+        if progress.get("n_total") == n:
+            start_idx = int(progress["next_doc_idx"])
+            index = faiss.read_index(str(index_path))
+            log.info(
+                "Resuming from checkpoint: %d / %d docs already indexed", start_idx, n
+            )
+        else:
+            log.warning(
+                "Progress file n_total mismatch (%s vs %d) — starting fresh",
+                progress.get("n_total"),
+                n,
+            )
+
+    log.info("Encoding %d remaining evidences for dense retrieval ...", n - start_idx)
+    chunk_size = batch_size * 32
+    chunks_done_this_session = 0
+    for start in range(start_idx, n, chunk_size):
+        end = min(start + chunk_size, n)
         emb = encoder.encode(
             texts[start:end],
             batch_size=batch_size,
@@ -70,9 +92,19 @@ def build_dense_index(
         index.add(emb)
         log.info("  encoded + indexed %d / %d", end, n)
         del emb
+        chunks_done_this_session += 1
+        # Periodic checkpoint (skip the final partial save — finalisation below handles it).
+        if chunks_done_this_session % checkpoint_every == 0 and end < n:
+            log.info("Checkpointing at doc %d / %d ...", end, n)
+            faiss.write_index(index, str(index_path))
+            progress_path.write_text(json.dumps({"next_doc_idx": end, "n_total": n}))
+
     assert index is not None, "evidence corpus was empty"
     faiss.write_index(index, str(index_path))
     ids_path.write_text(json.dumps(ids))
+    # Mark completion by removing the progress file so future runs see "done".
+    if progress_path.exists():
+        progress_path.unlink()
     log.info("Saved dense index -> %s (%.1f MB)", index_path, index_path.stat().st_size / 1e6)
 
 

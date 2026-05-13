@@ -129,3 +129,87 @@ def test_build_dense_index_smoke(tmp_path):
     hits = ret.search("anything", top_k=4)
     assert len(hits) == 4
     assert {eid for eid, _ in hits} == set(corpus)
+
+
+def test_build_dense_index_resume_from_checkpoint(tmp_path):
+    """A partial .faiss + .progress.json should resume, only encoding remaining docs."""
+    from src.retriever_dense import build_dense_index
+
+    corpus = {f"evidence-{i:03d}": f"text {i}" for i in range(8)}
+    rng = np.random.default_rng(0)
+
+    class CountingEncoder:
+        def __init__(self):
+            self.encoded = 0
+
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            self.encoded += len(texts)
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    index_path = tmp_path / "resume.faiss"
+    ids_path = tmp_path / "resume.ids.json"
+    progress_path = index_path.with_suffix(".progress.json")
+
+    # Pre-build a partial index covering the first 4 docs and write a progress marker.
+    pre_index = faiss.IndexFlatIP(8)
+    pre_emb = rng.standard_normal((4, 8)).astype("float32")
+    pre_emb /= np.linalg.norm(pre_emb, axis=1, keepdims=True)
+    pre_index.add(pre_emb)
+    faiss.write_index(pre_index, str(index_path))
+    progress_path.write_text(json.dumps({"next_doc_idx": 4, "n_total": 8}))
+
+    # Resume: should only encode the remaining 4 docs.
+    encoder = CountingEncoder()
+    build_dense_index(corpus, encoder, index_path, ids_path, batch_size=2)
+
+    assert encoder.encoded == 4, f"resumed run should encode only 4 docs, got {encoder.encoded}"
+    assert not progress_path.exists(), "progress marker should be removed on completion"
+    assert ids_path.exists()
+
+
+def test_build_dense_index_writes_mid_run_checkpoint(tmp_path):
+    """With multiple chunks, checkpoint files appear mid-run (between chunks)."""
+    from src.retriever_dense import build_dense_index
+
+    # chunk_size = batch_size * 32. batch_size=1 -> chunk_size=32.
+    # 100 docs -> 4 chunks. checkpoint_every=2 -> checkpoint fires after chunk 2 (doc 64),
+    # then finalisation handles the remaining chunks 3-4 and cleans progress marker.
+    rng = np.random.default_rng(0)
+
+    class CheckpointSpy:
+        """Encoder that records progress.json contents after each chunk encode."""
+
+        def __init__(self, progress_path):
+            self.progress_path = progress_path
+            self.snapshots: list[dict] = []
+            self.encoded_so_far = 0
+
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            # snapshot progress state BEFORE encoding this chunk
+            if self.progress_path.exists():
+                self.snapshots.append(json.loads(self.progress_path.read_text()))
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            self.encoded_so_far += len(texts)
+            return out
+
+    corpus = {f"e-{i:03d}": f"t{i}" for i in range(100)}
+    index_path = tmp_path / "ckpt.faiss"
+    ids_path = tmp_path / "ckpt.ids.json"
+    progress_path = index_path.with_suffix(".progress.json")
+    spy = CheckpointSpy(progress_path)
+    build_dense_index(corpus, spy, index_path, ids_path, batch_size=1, checkpoint_every=2)
+
+    # The snapshot taken after chunk 2 (before chunk 3 encodes) should show next_doc_idx=64.
+    assert any(s.get("next_doc_idx") == 64 and s.get("n_total") == 100 for s in spy.snapshots), \
+        f"expected a mid-run checkpoint at doc 64; saw snapshots: {spy.snapshots}"
+    # End-of-run state: final index written, progress marker cleaned.
+    assert index_path.exists()
+    assert ids_path.exists()
+    assert not progress_path.exists()
