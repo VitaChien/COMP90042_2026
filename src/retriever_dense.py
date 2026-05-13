@@ -13,7 +13,7 @@ Search phase (``DenseRetriever.search``):
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -50,7 +50,8 @@ def build_dense_index(
     log.info("Encoding %d evidences for dense retrieval ...", n)
 
     chunks: list[np.ndarray] = []
-    for start in range(0, n, batch_size * 32):  # 32 batches per chunk
+    # Encode in chunks to bound memory; sentence-transformers handles internal batching too.
+    for start in range(0, n, batch_size * 32):
         end = min(start + batch_size * 32, n)
         emb = encoder.encode(
             texts[start:end],
@@ -77,14 +78,12 @@ class DenseRetriever:
     ids_path: Path
     encoder: Any
     query_prefix: str = BGE_QUERY_PREFIX
-    _index: Any = None
-    _ids: list[str] | None = None
+    _index: Any = field(default=None, init=False, repr=False)
+    _ids: list[str] | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        if self._index is None:
-            self._index = faiss.read_index(str(self.index_path))
-        if self._ids is None:
-            self._ids = json.loads(Path(self.ids_path).read_text())
+        self._index = faiss.read_index(str(self.index_path))
+        self._ids = json.loads(Path(self.ids_path).read_text())
 
     @classmethod
     def from_cache(
