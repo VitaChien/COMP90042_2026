@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+import faiss
 from sentence_transformers import SentenceTransformer
 
 from src.config import Config
@@ -19,6 +20,21 @@ from src.retriever_dense import build_dense_index
 from src.utils import get_logger, timer
 
 log = get_logger("build-dense")
+
+
+def _existing_index_is_loadable(index_path) -> bool:
+    """Try to read the FAISS header so a truncated/corrupt file forces a rebuild.
+
+    Without this guard, a write interrupted by Colab disconnect / OOM kill leaves
+    a partial .faiss on disk that passes the .exists() check but fails downstream
+    in load_hybrid_components with a cryptic 'ret == size' error.
+    """
+    try:
+        idx = faiss.read_index(str(index_path))
+        return idx.ntotal > 0
+    except Exception as e:
+        log.warning("Existing dense index failed to load (%s) — rebuilding", e)
+        return False
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -32,7 +48,12 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     cfg = Config()
-    if cfg.dense_index_path.exists() and cfg.dense_ids_path.exists() and not args.force:
+    if (
+        cfg.dense_index_path.exists()
+        and cfg.dense_ids_path.exists()
+        and not args.force
+        and _existing_index_is_loadable(cfg.dense_index_path)
+    ):
         log.info("Dense index already exists at %s — skipping (use --force to rebuild)", cfg.dense_index_path)
         return
 
