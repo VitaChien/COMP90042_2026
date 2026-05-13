@@ -49,8 +49,11 @@ def build_dense_index(
     n = len(ids)
     log.info("Encoding %d evidences for dense retrieval ...", n)
 
-    chunks: list[np.ndarray] = []
-    # Encode in chunks to bound memory; sentence-transformers handles internal batching too.
+    # Stream each chunk straight into FAISS so we never hold the full N x D
+    # embedding matrix in RAM. Without streaming, np.vstack(chunks) + index.add
+    # briefly hold ~2x the 3.7 GB embedding array (n=1.2M, dim=768) and OOM on
+    # Colab T4 (12.7 GB host RAM). Streaming keeps peak chunk RAM ~50-200 MB.
+    index: faiss.Index | None = None
     for start in range(0, n, batch_size * 32):
         end = min(start + batch_size * 32, n)
         emb = encoder.encode(
@@ -59,14 +62,15 @@ def build_dense_index(
             normalize_embeddings=True,
             convert_to_numpy=True,
             show_progress_bar=True,
-        )
-        chunks.append(emb.astype("float32"))
-        log.info("  encoded %d / %d", end, n)
-    embeddings = np.vstack(chunks)
-    dim = embeddings.shape[1]
-    log.info("Building FAISS IndexFlatIP (dim=%d, n=%d) ...", dim, n)
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
+        ).astype("float32")
+        if index is None:
+            dim = emb.shape[1]
+            log.info("Building FAISS IndexFlatIP (dim=%d) ...", dim)
+            index = faiss.IndexFlatIP(dim)
+        index.add(emb)
+        log.info("  encoded + indexed %d / %d", end, n)
+        del emb
+    assert index is not None, "evidence corpus was empty"
     faiss.write_index(index, str(index_path))
     ids_path.write_text(json.dumps(ids))
     log.info("Saved dense index -> %s (%.1f MB)", index_path, index_path.stat().st_size / 1e6)
