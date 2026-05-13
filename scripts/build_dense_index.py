@@ -9,6 +9,7 @@ Idempotent: skips if both output files already exist.
 from __future__ import annotations
 
 import argparse
+import sys
 
 from sentence_transformers import SentenceTransformer
 
@@ -24,8 +25,10 @@ def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--force", action="store_true", help="rebuild even if cache exists")
-    # When called from a notebook (no CLI), pass argv=[] to skip Jupyter's
-    # injected `-f kernel.json` arg. CLI users get the default sys.argv parse.
+    if argv is None:
+        # Inside Jupyter/IPython, sys.argv contains the kernel launcher's
+        # `-f kernel.json` which argparse can't parse. Detect and ignore.
+        argv = [] if "ipykernel" in sys.modules else sys.argv[1:]
     args = p.parse_args(argv)
 
     cfg = Config()
