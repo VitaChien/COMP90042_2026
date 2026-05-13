@@ -98,7 +98,7 @@ def test_dense_retriever_top_k_clipped_to_index_size(tmp_path):
     assert len(hits) <= 4
 
 
-def test_build_dense_index_smoke(tmp_path, monkeypatch):
+def test_build_dense_index_smoke(tmp_path):
     """End-to-end: stub encoder + tiny corpus -> readable FAISS index."""
     from src.retriever_dense import DenseRetriever, build_dense_index
 
