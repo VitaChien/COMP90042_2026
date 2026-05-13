@@ -84,3 +84,14 @@ def test_hybrid_retriever_search():
     hits = hybrid.search("any claim", top_k=2)
     assert len(hits) == 2
     assert hits[0][0] == "e-2"  # appears in both -> highest fused RRF score
+
+
+def test_recall_at_k_with_partial_overlap():
+    """recall = |gold ∩ retrieved_topk| / |gold|."""
+    from src.retriever_hybrid import recall_at_k
+
+    gold = {"e-1", "e-2", "e-3"}
+    retrieved = [("e-1", 9.0), ("e-9", 8.0), ("e-2", 7.0), ("e-8", 6.0)]
+    assert recall_at_k(gold, retrieved, k=4) == pytest.approx(2 / 3)
+    assert recall_at_k(gold, retrieved, k=1) == pytest.approx(1 / 3)
+    assert recall_at_k(set(), retrieved, k=4) == 0.0

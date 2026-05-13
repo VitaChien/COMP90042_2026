@@ -42,3 +42,15 @@ class HybridRetriever:
         bm25_hits = self.bm25.search(query, top_k=self.bm25_top_k)
         dense_hits = self.dense.search(query, top_k=self.dense_top_k)
         return rrf_fuse(bm25_hits, dense_hits, k_rrf=self.k_rrf, top_k=top_k)
+
+
+def recall_at_k(
+    gold: set[str],
+    retrieved: list[tuple[str, float]],
+    k: int,
+) -> float:
+    """Recall@K: |gold ∩ retrieved[:k]| / |gold|. Returns 0 if gold is empty."""
+    if not gold:
+        return 0.0
+    top = {eid for eid, _ in retrieved[:k]}
+    return len(gold & top) / len(gold)
