@@ -60,7 +60,15 @@ def build_dense_index(
     start_idx = 0
     if index_path.exists() and progress_path.exists():
         progress = json.loads(progress_path.read_text())
-        if progress.get("n_total") == n:
+        # Identity guard: n_total alone is just a count and would silently accept
+        # a same-length but mutated corpus. Pin to first+last evidence id too so
+        # any rename / re-order / mutation forces a fresh build.
+        matches = (
+            progress.get("n_total") == n
+            and progress.get("first_id") == ids[0]
+            and progress.get("last_id") == ids[-1]
+        )
+        if matches:
             start_idx = int(progress["next_doc_idx"])
             index = faiss.read_index(str(index_path))
             log.info(
@@ -68,10 +76,14 @@ def build_dense_index(
             )
         else:
             log.warning(
-                "Progress file n_total mismatch (%s vs %d) — starting fresh",
-                progress.get("n_total"),
-                n,
+                "Progress file mismatch (n=%s first=%s last=%s vs n=%d first=%s last=%s)"
+                " — discarding checkpoint, starting fresh",
+                progress.get("n_total"), progress.get("first_id"), progress.get("last_id"),
+                n, ids[0], ids[-1],
             )
+            # Remove the stale marker so a fresh interrupt doesn't churn through
+            # the same mismatch on every restart.
+            progress_path.unlink()
 
     log.info("Encoding %d remaining evidences for dense retrieval ...", n - start_idx)
     chunk_size = batch_size * 32
@@ -97,7 +109,10 @@ def build_dense_index(
         if chunks_done_this_session % checkpoint_every == 0 and end < n:
             log.info("Checkpointing at doc %d / %d ...", end, n)
             faiss.write_index(index, str(index_path))
-            progress_path.write_text(json.dumps({"next_doc_idx": end, "n_total": n}))
+            progress_path.write_text(json.dumps({
+                "next_doc_idx": end, "n_total": n,
+                "first_id": ids[0], "last_id": ids[-1],
+            }))
 
     assert index is not None, "evidence corpus was empty"
     faiss.write_index(index, str(index_path))

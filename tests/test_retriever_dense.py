@@ -160,7 +160,11 @@ def test_build_dense_index_resume_from_checkpoint(tmp_path):
     pre_emb /= np.linalg.norm(pre_emb, axis=1, keepdims=True)
     pre_index.add(pre_emb)
     faiss.write_index(pre_index, str(index_path))
-    progress_path.write_text(json.dumps({"next_doc_idx": 4, "n_total": 8}))
+    ids_list = list(corpus.keys())
+    progress_path.write_text(json.dumps({
+        "next_doc_idx": 4, "n_total": 8,
+        "first_id": ids_list[0], "last_id": ids_list[-1],
+    }))
 
     # Resume: should only encode the remaining 4 docs.
     encoder = CountingEncoder()
@@ -169,6 +173,51 @@ def test_build_dense_index_resume_from_checkpoint(tmp_path):
     assert encoder.encoded == 4, f"resumed run should encode only 4 docs, got {encoder.encoded}"
     assert not progress_path.exists(), "progress marker should be removed on completion"
     assert ids_path.exists()
+    # Final index should contain all 8 vectors (4 pre + 4 newly encoded).
+    final = faiss.read_index(str(index_path))
+    assert final.ntotal == 8, f"expected 8 vectors in resumed index, got {final.ntotal}"
+    # ids.json should list all 8 evidence ids in corpus order.
+    persisted_ids = json.loads(ids_path.read_text())
+    assert persisted_ids == ids_list
+
+
+def test_build_dense_index_n_total_mismatch_starts_fresh(tmp_path):
+    """If progress.json identity fields don't match current corpus, start fresh."""
+    from src.retriever_dense import build_dense_index
+
+    rng = np.random.default_rng(0)
+
+    class RE:
+        def __init__(self):
+            self.encoded = 0
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            self.encoded += len(texts)
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    corpus = {f"e-{i:03d}": f"t{i}" for i in range(6)}
+    index_path = tmp_path / "mis.faiss"
+    ids_path = tmp_path / "mis.ids.json"
+    progress_path = index_path.with_suffix(".progress.json")
+
+    # Stale checkpoint claims 999 docs — must be discarded.
+    pre_index = faiss.IndexFlatIP(8)
+    pre_index.add(rng.standard_normal((3, 8)).astype("float32"))
+    faiss.write_index(pre_index, str(index_path))
+    progress_path.write_text(json.dumps({
+        "next_doc_idx": 3, "n_total": 999, "first_id": "wrong", "last_id": "wrong",
+    }))
+
+    encoder = RE()
+    build_dense_index(corpus, encoder, index_path, ids_path, batch_size=2)
+
+    # Mismatch should have triggered fresh build over all 6 docs.
+    assert encoder.encoded == 6, f"fresh build should encode all 6 docs, got {encoder.encoded}"
+    assert faiss.read_index(str(index_path)).ntotal == 6
+    assert not progress_path.exists()
 
 
 def test_build_dense_index_writes_mid_run_checkpoint(tmp_path):
