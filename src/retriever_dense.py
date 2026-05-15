@@ -13,6 +13,7 @@ Search phase (``DenseRetriever.search``):
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,34 @@ from src.utils import get_logger
 log = get_logger("dense")
 
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+# On Colab, the /content/COMP90042_2026/cache symlink points into the Drive FUSE
+# mount. Drive FUSE silently truncates large file writes (>2 GB) when buffered
+# data hasn't finished syncing to cloud at session end — observed multiple
+# times producing 2.5 GB / 3.1 GB partial .faiss files instead of the full
+# 3.7 GB. Local SSD writes are direct disk I/O and don't suffer this. The
+# trade-off is the index doesn't survive a session disconnect (must rebuild,
+# ~12-15 min on T4), which is far preferable to silent corruption.
+COLAB_LOCAL_DENSE_DIR = Path("/content/dense_cache")
+
+
+def _is_colab() -> bool:
+    return "google.colab" in sys.modules
+
+
+def resolve_dense_paths(drive_index_path: Path, drive_ids_path: Path) -> tuple[Path, Path]:
+    """Pick where the dense index physically lives.
+
+    Colab → local SSD (avoids Drive FUSE silently truncating 3.7 GB writes).
+    Anywhere else (local Mac, CI, tests) → the path the caller asked for.
+    """
+    if _is_colab():
+        COLAB_LOCAL_DENSE_DIR.mkdir(parents=True, exist_ok=True)
+        return (
+            COLAB_LOCAL_DENSE_DIR / drive_index_path.name,
+            COLAB_LOCAL_DENSE_DIR / drive_ids_path.name,
+        )
+    return drive_index_path, drive_ids_path
 
 
 def _atomic_write_index(index: Any, target_path: Path) -> None:

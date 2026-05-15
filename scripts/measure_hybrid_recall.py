@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 from src.config import Config
 from src.data_loader import load_claims
 from src.retriever_bm25 import BM25Retriever
-from src.retriever_dense import DenseRetriever
+from src.retriever_dense import DenseRetriever, resolve_dense_paths
 from src.retriever_hybrid import HybridRetriever, recall_at_k
 from src.utils import get_logger, timer
 
@@ -39,7 +39,10 @@ def main() -> None:
 
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     encoder = SentenceTransformer(cfg.dense_encoder)
-    dense = DenseRetriever.from_cache(cfg.dense_index_path, cfg.dense_ids_path, encoder)
+    dense_index_path, dense_ids_path = resolve_dense_paths(
+        cfg.dense_index_path, cfg.dense_ids_path
+    )
+    dense = DenseRetriever.from_cache(dense_index_path, dense_ids_path, encoder)
     hybrid = HybridRetriever(
         bm25=bm25, dense=dense, k_rrf=cfg.rrf_k,
         bm25_top_k=max(K_VALUES), dense_top_k=max(K_VALUES),

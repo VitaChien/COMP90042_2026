@@ -16,7 +16,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.config import Config
 from src.data_loader import load_evidence
-from src.retriever_dense import build_dense_index
+from src.retriever_dense import build_dense_index, resolve_dense_paths
 from src.utils import get_logger, timer
 
 log = get_logger("build-dense")
@@ -48,13 +48,20 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     cfg = Config()
+    # On Colab, redirect from Drive paths to local SSD (Drive FUSE silently
+    # truncates the 3.7 GB write). Other environments keep cfg paths unchanged.
+    index_path, ids_path = resolve_dense_paths(cfg.dense_index_path, cfg.dense_ids_path)
+    if index_path != cfg.dense_index_path:
+        log.info("Detected Colab — building to local SSD: %s", index_path.parent)
+        log.info("(Drive FUSE truncates >2 GB writes; rebuilding each session is safer.)")
+
     if (
-        cfg.dense_index_path.exists()
-        and cfg.dense_ids_path.exists()
+        index_path.exists()
+        and ids_path.exists()
         and not args.force
-        and _existing_index_is_loadable(cfg.dense_index_path)
+        and _existing_index_is_loadable(index_path)
     ):
-        log.info("Dense index already exists at %s — skipping (use --force to rebuild)", cfg.dense_index_path)
+        log.info("Dense index already exists at %s — skipping (use --force to rebuild)", index_path)
         return
 
     log.info("Loading evidence corpus ...")
@@ -68,8 +75,8 @@ def main(argv: list[str] | None = None) -> None:
         build_dense_index(
             evidence,
             encoder,
-            index_path=cfg.dense_index_path,
-            ids_path=cfg.dense_ids_path,
+            index_path=index_path,
+            ids_path=ids_path,
             batch_size=args.batch_size,
         )
 

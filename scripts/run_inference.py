@@ -150,14 +150,24 @@ def load_hybrid_components(cfg: Config | None = None, device: str | None = None)
     """Load BM25, dense, CE, and evidence corpus once for hybrid inference."""
     from sentence_transformers import SentenceTransformer
 
-    from src.retriever_dense import DenseRetriever
+    from src.retriever_dense import DenseRetriever, resolve_dense_paths
     from src.retriever_hybrid import HybridRetriever
 
     cfg = cfg or Config()
     device = device or _pick_device()
     bm25 = BM25Retriever.from_cache(cfg.cache_dir / "bm25_index")
     encoder = SentenceTransformer(cfg.dense_encoder, device=device)
-    dense = DenseRetriever.from_cache(cfg.dense_index_path, cfg.dense_ids_path, encoder)
+    # On Colab, load from local SSD where build_dense_index.py wrote it
+    # (Drive FUSE truncates large writes — see resolve_dense_paths docstring).
+    dense_index_path, dense_ids_path = resolve_dense_paths(
+        cfg.dense_index_path, cfg.dense_ids_path
+    )
+    if not dense_index_path.exists():
+        raise FileNotFoundError(
+            f"Dense index not found at {dense_index_path}. On Colab, run cell 1.4 "
+            "in this session first — local SSD is wiped between sessions."
+        )
+    dense = DenseRetriever.from_cache(dense_index_path, dense_ids_path, encoder)
     hybrid = HybridRetriever(
         bm25=bm25, dense=dense, k_rrf=cfg.rrf_k,
         bm25_top_k=cfg.bm25_top_k, dense_top_k=cfg.dense_top_k,
