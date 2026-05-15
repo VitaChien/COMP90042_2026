@@ -34,6 +34,30 @@ _ABBREVS = {
     "UN": "United Nations",
 }
 
+# Climate-domain abbreviations → extra tokens injected alongside (NOT replacing) the
+# abbreviation token, before stemming.  One-directional: abbreviation gains the
+# spelled-out tokens so that a claim saying "CO2" matches evidence saying
+# "carbon dioxide".  Doc-count evidence from evidence.json + train-claims.json:
+#   key → (abbrev_docs, spelled_docs) e.g. co2 → (246, 967), ipcc → (465, 143).
+SYNONYM_MAP: dict[str, tuple[str, ...]] = {
+    "co2":    ("carbon", "dioxide"),                              # abbrev=246, spelled=967
+    "ch4":    ("methane",),                                       # abbrev=8,   spelled=413
+    "n2o":    ("nitrous", "oxide"),                               # abbrev=5,   spelled=63
+    "h2o":    ("water",),                                         # abbrev=154, spelled=193
+    "ghg":    ("greenhouse", "gas"),                              # abbrev=194, spelled=1036
+    "ipcc":   ("intergovernmental", "panel", "climate", "change"),# abbrev=465, spelled=143
+    "nasa":   ("national", "aeronautics", "space"),               # abbrev=512, spelled=24
+    "noaa":   ("national", "oceanic", "atmospheric", "administration"), # abbrev=121, spelled=49
+    "cru":    ("climatic", "research", "unit"),                   # abbrev=68,  spelled=22
+    "ppm":    ("parts", "per", "million"),                        # abbrev=140, spelled=37
+    "mwp":    ("medieval", "warm", "period"),                     # abbrev=2,   spelled=20
+    "uah":    ("university", "alabama", "huntsville"),            # abbrev=14,  spelled=168
+    "usgcrp": ("global", "change", "research", "program"),       # abbrev=25,  spelled=15
+    "grace":  ("gravity", "recovery", "climate", "experiment"),  # abbrev=14,  spelled=1
+    "enso":   ("el", "nino", "southern", "oscillation"),         # abbrev=62,  spelled=159
+    "ar4":    ("fourth", "assessment", "report"),                 # abbrev=20,  spelled=50
+    "epa":    ("environmental", "protection", "agency"),         # abbrev=249, spelled=132
+}
 
 
 def normalize_claim(text):
@@ -64,7 +88,12 @@ class BM25Retriever:
         text   = text.lower()
         text   = re.sub(r"[^\w\s]", " ", text)
         tokens = text.split()
-        tokens = [STEMMER.stem(t) for t in tokens if t not in STOP_WORDS]
+        expanded = []
+        for t in tokens:
+            expanded.append(t)
+            if t in SYNONYM_MAP:
+                expanded.extend(SYNONYM_MAP[t])
+        tokens = [STEMMER.stem(t) for t in expanded if t not in STOP_WORDS]
         return tokens
 
     def build_index(self):
