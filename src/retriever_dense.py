@@ -27,6 +27,32 @@ log = get_logger("dense")
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 
+def _atomic_write_index(index: Any, target_path: Path) -> None:
+    """Write a FAISS index via tmp + rename so an interrupted write never
+    leaves a half-written file at ``target_path``.
+
+    Without this, a Colab disconnect or OOM kill mid-write produces a
+    truncated .faiss that fools the .exists() check and crashes downstream
+    with ``ret == size`` when read.
+    """
+    tmp_path = target_path.with_suffix(target_path.suffix + ".tmp")
+    if tmp_path.exists():
+        tmp_path.unlink()
+    faiss.write_index(index, str(tmp_path))
+    # Verify size > 0 before promoting; an empty file would also be wrong.
+    if tmp_path.stat().st_size == 0:
+        tmp_path.unlink()
+        raise RuntimeError(f"FAISS write produced empty file at {tmp_path}")
+    tmp_path.replace(target_path)
+
+
+def _atomic_write_text(text: str, target_path: Path) -> None:
+    """Same idea for small JSON sidecars (progress, ids)."""
+    tmp_path = target_path.with_suffix(target_path.suffix + ".tmp")
+    tmp_path.write_text(text)
+    tmp_path.replace(target_path)
+
+
 def build_dense_index(
     evidence: dict[str, str],
     encoder: Any,
@@ -108,15 +134,18 @@ def build_dense_index(
         # Periodic checkpoint (skip the final partial save — finalisation below handles it).
         if chunks_done_this_session % checkpoint_every == 0 and end < n:
             log.info("Checkpointing at doc %d / %d ...", end, n)
-            faiss.write_index(index, str(index_path))
-            progress_path.write_text(json.dumps({
-                "next_doc_idx": end, "n_total": n,
-                "first_id": ids[0], "last_id": ids[-1],
-            }))
+            _atomic_write_index(index, index_path)
+            _atomic_write_text(
+                json.dumps({
+                    "next_doc_idx": end, "n_total": n,
+                    "first_id": ids[0], "last_id": ids[-1],
+                }),
+                progress_path,
+            )
 
     assert index is not None, "evidence corpus was empty"
-    faiss.write_index(index, str(index_path))
-    ids_path.write_text(json.dumps(ids))
+    _atomic_write_index(index, index_path)
+    _atomic_write_text(json.dumps(ids), ids_path)
     # Mark completion by removing the progress file so future runs see "done".
     if progress_path.exists():
         progress_path.unlink()
