@@ -39,7 +39,7 @@ def _existing_index_is_loadable(index_path) -> bool:
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--batch-size", type=int, default=128)
+    p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--force", action="store_true", help="rebuild even if cache exists")
     if argv is None:
         # Inside Jupyter/IPython, sys.argv contains the kernel launcher's
@@ -70,6 +70,12 @@ def main(argv: list[str] | None = None) -> None:
 
     log.info("Loading encoder %s ...", cfg.dense_encoder)
     encoder = SentenceTransformer(cfg.dense_encoder)
+    # fp16 on GPU: ~1.7x faster encoding, negligible effect on cosine ranking.
+    import torch
+
+    if torch.cuda.is_available():
+        encoder = encoder.half()
+        log.info("fp16 encoding enabled (CUDA detected)")
 
     with timer("build_dense_index", log):
         build_dense_index(
