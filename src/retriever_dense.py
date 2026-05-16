@@ -73,15 +73,29 @@ def save_index_to_drive(
 ) -> None:
     """Persist a locally-built FAISS index to Drive as verified sub-1 GB parts.
 
-    Writes ``<drive_index>.partNN`` files plus a ``.manifest.json``. The ids
-    JSON is small enough to copy whole. The manifest is written LAST, so a
-    crash mid-save leaves no manifest and ``restore_index_from_drive`` treats
-    the partial save as absent (caller rebuilds).
+    Writes ``<drive_index>.partNN`` files plus a ``.manifest.json``.
+
+    Crash-safety: the OLD manifest is deleted *first* (before any part is
+    overwritten), and all stale parts are cleared. So at every moment during a
+    save there is either a manifest matching fully-written parts (previous
+    good state, briefly) or no manifest at all — never a stale manifest
+    pointing at half-overwritten parts. The new manifest is written LAST.
+    ``restore_index_from_drive`` treats a missing manifest as "nothing to
+    restore" and the caller rebuilds.
     """
     drive_dir = drive_index_path.parent
     drive_dir.mkdir(parents=True, exist_ok=True)
     stem = drive_index_path.name
+    manifest_path = drive_dir / f"{stem}.manifest.json"
     total_size = local_index_path.stat().st_size
+
+    # Invalidate the prior save before touching any part: drop the manifest so
+    # a crash mid-resave cannot leave a stale manifest over new partial parts,
+    # then clear orphaned parts (a previous save may have had more parts).
+    if manifest_path.exists():
+        manifest_path.unlink()
+    for old_part in drive_dir.glob(f"{stem}.part*"):
+        old_part.unlink()
 
     part_sizes: list[int] = []
     with open(local_index_path, "rb") as f:
@@ -107,7 +121,7 @@ def save_index_to_drive(
 
     drive_ids_path.write_bytes(local_ids_path.read_bytes())
     manifest = {"n_parts": len(part_sizes), "part_sizes": part_sizes, "total_size": total_size}
-    (drive_dir / f"{stem}.manifest.json").write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest))
     log.info("Saved dense index to Drive in %d parts -> %s", len(part_sizes), drive_dir)
 
 
@@ -130,10 +144,16 @@ def restore_index_from_drive(
     try:
         manifest = json.loads(manifest_path.read_text())
         n_parts = int(manifest["n_parts"])
-        part_sizes = list(manifest["part_sizes"])
+        part_sizes = [int(s) for s in manifest["part_sizes"]]
         total_size = int(manifest["total_size"])
     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
         log.warning("Drive dense-index manifest unreadable (%s) — will rebuild", e)
+        return False
+    if len(part_sizes) != n_parts:
+        log.warning(
+            "Manifest n_parts (%d) != len(part_sizes) (%d) — will rebuild",
+            n_parts, len(part_sizes),
+        )
         return False
 
     parts: list[Path] = []
@@ -144,9 +164,13 @@ def restore_index_from_drive(
             return False
         parts.append(p)
 
+    # Reassemble into a .tmp file and only rename into place once the index
+    # AND the ids JSON are both verified — a kill mid-reassembly then leaves
+    # only the .tmp, never a half-written index at the real path.
     local_index_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_index = local_index_path.with_suffix(local_index_path.suffix + ".tmp")
     log.info("Restoring dense index from %d Drive parts ...", n_parts)
-    with open(local_index_path, "wb") as out:
+    with open(tmp_index, "wb") as out:
         for p in parts:
             with open(p, "rb") as pf:
                 while True:
@@ -154,12 +178,22 @@ def restore_index_from_drive(
                     if not blk:
                         break
                     out.write(blk)
-    if local_index_path.stat().st_size != total_size:
+    if tmp_index.stat().st_size != total_size:
         log.warning("Reassembled index size mismatch — discarding, will rebuild")
-        local_index_path.unlink()
+        tmp_index.unlink()
         return False
-    local_ids_path.parent.mkdir(parents=True, exist_ok=True)
-    local_ids_path.write_bytes(drive_ids_path.read_bytes())
+
+    # ids.json copy is guarded: a failure here must not leave a valid .faiss
+    # with a missing/stale ids file (which would silently misalign rows↔ids).
+    try:
+        local_ids_path.parent.mkdir(parents=True, exist_ok=True)
+        local_ids_path.write_bytes(drive_ids_path.read_bytes())
+    except OSError as e:
+        log.warning("ids.json copy failed (%s) — discarding restore, will rebuild", e)
+        tmp_index.unlink()
+        return False
+
+    tmp_index.replace(local_index_path)
     log.info("Restored dense index -> %s (%.1f MB)", local_index_path, total_size / 1e6)
     return True
 

@@ -46,11 +46,17 @@ def main() -> None:
     dense_index_path, dense_ids_path = resolve_dense_paths(
         cfg.dense_index_path, cfg.dense_ids_path
     )
-    if not dense_index_path.exists() and dense_index_path != cfg.dense_index_path:
+    if not dense_index_path.exists():
         # Fresh Colab session — restore from Drive chunks rather than rebuild.
-        restore_index_from_drive(
-            cfg.dense_index_path, cfg.dense_ids_path, dense_index_path, dense_ids_path
-        )
+        if dense_index_path != cfg.dense_index_path:
+            restore_index_from_drive(
+                cfg.dense_index_path, cfg.dense_ids_path, dense_index_path, dense_ids_path
+            )
+        if not dense_index_path.exists():
+            raise FileNotFoundError(
+                f"Dense index not found at {dense_index_path} and no Drive backup "
+                "to restore. Run cell 1.4 (build dense index) first."
+            )
     dense = DenseRetriever.from_cache(dense_index_path, dense_ids_path, encoder)
     hybrid = HybridRetriever(
         bm25=bm25, dense=dense, k_rrf=cfg.rrf_k,

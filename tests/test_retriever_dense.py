@@ -376,3 +376,127 @@ def test_restore_index_from_drive_rejects_missing_part(tmp_path):
     ok = restore_index_from_drive(drive_index, drive_ids, restore_target, restore_ids)
     assert ok is False
     assert not restore_target.exists()
+
+
+def _random_encoder(seed: int):
+    """A deterministic 8-dim stub encoder for save/restore tests."""
+    rng = np.random.default_rng(seed)
+
+    class RandomEncoder:
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    return RandomEncoder()
+
+
+def test_save_index_to_drive_clears_stale_parts(tmp_path):
+    """Re-saving a smaller index must not leave orphaned parts from the prior save."""
+    from src.retriever_dense import (
+        DenseRetriever,
+        build_dense_index,
+        restore_index_from_drive,
+        save_index_to_drive,
+    )
+
+    local_dir = tmp_path / "local"
+    drive_dir = tmp_path / "drive"
+    local_dir.mkdir()
+    drive_dir.mkdir()
+    local_index = local_dir / "dense_index_bge.faiss"
+    local_ids = local_dir / "dense_index_bge.ids.json"
+    drive_index = drive_dir / "dense_index_bge.faiss"
+    drive_ids = drive_dir / "dense_index_bge.ids.json"
+
+    # First save: large corpus -> many parts.
+    big = {f"e-{i:03d}": f"t{i}" for i in range(80)}
+    build_dense_index(big, _random_encoder(1), local_index, local_ids, batch_size=8)
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=256)
+    big_parts = len(list(drive_dir.glob("dense_index_bge.faiss.part*")))
+    assert big_parts >= 3
+
+    # Second save: smaller corpus -> fewer parts. Orphaned high-index parts
+    # from the first save must be cleared.
+    local_index.unlink()
+    local_ids.unlink()
+    small = {f"e-{i:03d}": f"t{i}" for i in range(12)}
+    build_dense_index(small, _random_encoder(2), local_index, local_ids, batch_size=8)
+    expected_bytes = local_index.read_bytes()
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=256)
+    small_parts = len(list(drive_dir.glob("dense_index_bge.faiss.part*")))
+    assert small_parts < big_parts, "stale parts from the larger first save were not cleared"
+
+    # Restore must reassemble exactly the second (small) index, no Frankenstein.
+    local_index.unlink()
+    local_ids.unlink()
+    assert restore_index_from_drive(drive_index, drive_ids, local_index, local_ids)
+    assert local_index.read_bytes() == expected_bytes
+    ret = DenseRetriever.from_cache(local_index, local_ids, _random_encoder(9), query_prefix="")
+    assert {eid for eid, _ in ret.search("q", top_k=12)} == set(small)
+
+
+def test_restore_rejects_corrupt_manifest(tmp_path):
+    """A manifest that isn't valid JSON -> restore returns False, no crash."""
+    from src.retriever_dense import (
+        build_dense_index,
+        restore_index_from_drive,
+        save_index_to_drive,
+    )
+
+    local_dir = tmp_path / "local"
+    drive_dir = tmp_path / "drive"
+    local_dir.mkdir()
+    drive_dir.mkdir()
+    local_index = local_dir / "dense_index_bge.faiss"
+    local_ids = local_dir / "dense_index_bge.ids.json"
+    drive_index = drive_dir / "dense_index_bge.faiss"
+    drive_ids = drive_dir / "dense_index_bge.ids.json"
+
+    corpus = {f"e-{i}": f"t{i}" for i in range(12)}
+    build_dense_index(corpus, _random_encoder(3), local_index, local_ids, batch_size=8)
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=256)
+
+    (drive_dir / "dense_index_bge.faiss.manifest.json").write_text("{not valid json")
+
+    restore_target = tmp_path / "restore" / "dense_index_bge.faiss"
+    restore_ids = tmp_path / "restore" / "dense_index_bge.ids.json"
+    assert restore_index_from_drive(drive_index, drive_ids, restore_target, restore_ids) is False
+    assert not restore_target.exists()
+
+
+def test_restore_rejects_size_mismatched_part(tmp_path):
+    """A manifest whose part_sizes disagree with the actual parts -> restore fails."""
+    import json as json_mod
+
+    from src.retriever_dense import (
+        build_dense_index,
+        restore_index_from_drive,
+        save_index_to_drive,
+    )
+
+    local_dir = tmp_path / "local"
+    drive_dir = tmp_path / "drive"
+    local_dir.mkdir()
+    drive_dir.mkdir()
+    local_index = local_dir / "dense_index_bge.faiss"
+    local_ids = local_dir / "dense_index_bge.ids.json"
+    drive_index = drive_dir / "dense_index_bge.faiss"
+    drive_ids = drive_dir / "dense_index_bge.ids.json"
+
+    corpus = {f"e-{i}": f"t{i}" for i in range(20)}
+    build_dense_index(corpus, _random_encoder(4), local_index, local_ids, batch_size=8)
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=256)
+
+    # Corrupt the manifest: claim part 0 is one byte larger than it really is.
+    manifest_path = drive_dir / "dense_index_bge.faiss.manifest.json"
+    manifest = json_mod.loads(manifest_path.read_text())
+    manifest["part_sizes"][0] += 1
+    manifest_path.write_text(json_mod.dumps(manifest))
+
+    restore_target = tmp_path / "restore" / "dense_index_bge.faiss"
+    restore_ids = tmp_path / "restore" / "dense_index_bge.ids.json"
+    assert restore_index_from_drive(drive_index, drive_ids, restore_target, restore_ids) is False
+    assert not restore_target.exists()
