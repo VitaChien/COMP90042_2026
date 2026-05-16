@@ -56,6 +56,114 @@ def resolve_dense_paths(drive_index_path: Path, drive_ids_path: Path) -> tuple[P
     return drive_index_path, drive_ids_path
 
 
+# Drive FUSE truncates large (>~2 GB) streaming writes, but sub-1 GB files sync
+# reliably. Splitting the index into parts lets us persist it to Drive so a
+# session disconnect doesn't force a 40-min rebuild — reassembly is a fast
+# local read.
+DENSE_INDEX_CHUNK_SIZE = 900 * 1024 * 1024  # 900 MB
+_RESTORE_READ_BLOCK = 64 * 1024 * 1024  # 64 MB streaming block for reassembly
+
+
+def save_index_to_drive(
+    local_index_path: Path,
+    local_ids_path: Path,
+    drive_index_path: Path,
+    drive_ids_path: Path,
+    chunk_size: int = DENSE_INDEX_CHUNK_SIZE,
+) -> None:
+    """Persist a locally-built FAISS index to Drive as verified sub-1 GB parts.
+
+    Writes ``<drive_index>.partNN`` files plus a ``.manifest.json``. The ids
+    JSON is small enough to copy whole. The manifest is written LAST, so a
+    crash mid-save leaves no manifest and ``restore_index_from_drive`` treats
+    the partial save as absent (caller rebuilds).
+    """
+    drive_dir = drive_index_path.parent
+    drive_dir.mkdir(parents=True, exist_ok=True)
+    stem = drive_index_path.name
+    total_size = local_index_path.stat().st_size
+
+    part_sizes: list[int] = []
+    with open(local_index_path, "rb") as f:
+        part_idx = 0
+        while True:
+            block = f.read(chunk_size)
+            if not block:
+                break
+            part_path = drive_dir / f"{stem}.part{part_idx:02d}"
+            for attempt in range(3):
+                part_path.write_bytes(block)
+                if part_path.stat().st_size == len(block):
+                    break
+                log.warning(
+                    "Drive part %s truncated (attempt %d) — retrying",
+                    part_path.name, attempt + 1,
+                )
+            else:
+                raise RuntimeError(f"Drive part {part_path} kept truncating after 3 tries")
+            part_sizes.append(len(block))
+            log.info("  wrote %s (%.0f MB)", part_path.name, len(block) / 1e6)
+            part_idx += 1
+
+    drive_ids_path.write_bytes(local_ids_path.read_bytes())
+    manifest = {"n_parts": len(part_sizes), "part_sizes": part_sizes, "total_size": total_size}
+    (drive_dir / f"{stem}.manifest.json").write_text(json.dumps(manifest))
+    log.info("Saved dense index to Drive in %d parts -> %s", len(part_sizes), drive_dir)
+
+
+def restore_index_from_drive(
+    drive_index_path: Path,
+    drive_ids_path: Path,
+    local_index_path: Path,
+    local_ids_path: Path,
+) -> bool:
+    """Reassemble a chunk-persisted FAISS index from Drive onto local SSD.
+
+    Returns True only if a complete, size-verified set of parts was found and
+    reassembled; False otherwise (caller should then build from scratch).
+    """
+    drive_dir = drive_index_path.parent
+    stem = drive_index_path.name
+    manifest_path = drive_dir / f"{stem}.manifest.json"
+    if not manifest_path.exists() or not drive_ids_path.exists():
+        return False
+    try:
+        manifest = json.loads(manifest_path.read_text())
+        n_parts = int(manifest["n_parts"])
+        part_sizes = list(manifest["part_sizes"])
+        total_size = int(manifest["total_size"])
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+        log.warning("Drive dense-index manifest unreadable (%s) — will rebuild", e)
+        return False
+
+    parts: list[Path] = []
+    for i in range(n_parts):
+        p = drive_dir / f"{stem}.part{i:02d}"
+        if not p.exists() or p.stat().st_size != part_sizes[i]:
+            log.warning("Drive part %s missing or wrong size — cannot restore", p.name)
+            return False
+        parts.append(p)
+
+    local_index_path.parent.mkdir(parents=True, exist_ok=True)
+    log.info("Restoring dense index from %d Drive parts ...", n_parts)
+    with open(local_index_path, "wb") as out:
+        for p in parts:
+            with open(p, "rb") as pf:
+                while True:
+                    blk = pf.read(_RESTORE_READ_BLOCK)
+                    if not blk:
+                        break
+                    out.write(blk)
+    if local_index_path.stat().st_size != total_size:
+        log.warning("Reassembled index size mismatch — discarding, will rebuild")
+        local_index_path.unlink()
+        return False
+    local_ids_path.parent.mkdir(parents=True, exist_ok=True)
+    local_ids_path.write_bytes(drive_ids_path.read_bytes())
+    log.info("Restored dense index -> %s (%.1f MB)", local_index_path, total_size / 1e6)
+    return True
+
+
 def _atomic_write_index(index: Any, target_path: Path) -> None:
     """Write a FAISS index via tmp + rename so an interrupted write never
     leaves a half-written file at ``target_path``.

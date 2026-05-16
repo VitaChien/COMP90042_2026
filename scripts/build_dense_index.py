@@ -16,7 +16,12 @@ from sentence_transformers import SentenceTransformer
 
 from src.config import Config
 from src.data_loader import load_evidence
-from src.retriever_dense import build_dense_index, resolve_dense_paths
+from src.retriever_dense import (
+    build_dense_index,
+    resolve_dense_paths,
+    restore_index_from_drive,
+    save_index_to_drive,
+)
 from src.utils import get_logger, timer
 
 log = get_logger("build-dense")
@@ -51,19 +56,31 @@ def main(argv: list[str] | None = None) -> None:
     # On Colab, redirect from Drive paths to local SSD (Drive FUSE silently
     # truncates the 3.7 GB write). Other environments keep cfg paths unchanged.
     index_path, ids_path = resolve_dense_paths(cfg.dense_index_path, cfg.dense_ids_path)
-    if index_path != cfg.dense_index_path:
+    on_colab = index_path != cfg.dense_index_path
+    if on_colab:
         log.info("Detected Colab — building to local SSD: %s", index_path.parent)
-        log.info("(Drive FUSE truncates >2 GB writes; rebuilding each session is safer.)")
 
+    # 1. Already on local SSD this session?
     if (
         index_path.exists()
         and ids_path.exists()
         and not args.force
         and _existing_index_is_loadable(index_path)
     ):
-        log.info("Dense index already exists at %s — skipping (use --force to rebuild)", index_path)
+        log.info("Dense index already on local SSD %s — skipping", index_path)
         return
 
+    # 2. Persisted on Drive from an earlier session? Restore instead of the
+    #    ~40-min rebuild. The index was saved as verified sub-1 GB parts.
+    if on_colab and not args.force and restore_index_from_drive(
+        cfg.dense_index_path, cfg.dense_ids_path, index_path, ids_path
+    ):
+        if _existing_index_is_loadable(index_path):
+            log.info("Restored dense index from Drive — skipping rebuild")
+            return
+        log.warning("Restored index failed to load — rebuilding from scratch")
+
+    # 3. Build from scratch.
     log.info("Loading evidence corpus ...")
     with timer("load_evidence", log):
         evidence = load_evidence(cfg.evidence_path)
@@ -85,6 +102,15 @@ def main(argv: list[str] | None = None) -> None:
             ids_path=ids_path,
             batch_size=args.batch_size,
         )
+
+    # 4. Persist to Drive in chunks so the next session restores instead of
+    #    rebuilding. Skipped off-Colab (the index is already at its final path).
+    if on_colab:
+        log.info("Persisting dense index to Drive in chunks for cross-session reuse ...")
+        with timer("save_index_to_drive", log):
+            save_index_to_drive(
+                index_path, ids_path, cfg.dense_index_path, cfg.dense_ids_path
+            )
 
 
 if __name__ == "__main__":

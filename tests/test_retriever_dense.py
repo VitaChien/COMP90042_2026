@@ -262,3 +262,117 @@ def test_build_dense_index_writes_mid_run_checkpoint(tmp_path):
     assert index_path.exists()
     assert ids_path.exists()
     assert not progress_path.exists()
+
+
+def test_save_and_restore_index_to_drive_roundtrip(tmp_path):
+    """Chunked save -> delete local -> restore reproduces a byte-identical index."""
+    from src.retriever_dense import (
+        DenseRetriever,
+        build_dense_index,
+        restore_index_from_drive,
+        save_index_to_drive,
+    )
+
+    corpus = {f"evidence-{i:03d}": f"text {i}" for i in range(40)}
+    rng = np.random.default_rng(7)
+
+    class RandomEncoder:
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    local_dir = tmp_path / "local"
+    drive_dir = tmp_path / "drive"
+    local_dir.mkdir()
+    drive_dir.mkdir()
+    local_index = local_dir / "dense_index_bge.faiss"
+    local_ids = local_dir / "dense_index_bge.ids.json"
+    drive_index = drive_dir / "dense_index_bge.faiss"
+    drive_ids = drive_dir / "dense_index_bge.ids.json"
+
+    build_dense_index(corpus, RandomEncoder(), local_index, local_ids, batch_size=4)
+    original_bytes = local_index.read_bytes()
+
+    # Save with a tiny chunk size so multiple parts are exercised.
+    # 40 x 8-dim float32 vectors -> ~1.4 KB index; 512-byte chunks -> ~3 parts.
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=512)
+    n_parts = len(list(drive_dir.glob("dense_index_bge.faiss.part*")))
+    assert n_parts >= 2, f"expected the index split into >=2 parts, got {n_parts}"
+    assert (drive_dir / "dense_index_bge.faiss.manifest.json").exists()
+
+    # Wipe local, restore from Drive parts.
+    local_index.unlink()
+    local_ids.unlink()
+    ok = restore_index_from_drive(drive_index, drive_ids, local_index, local_ids)
+    assert ok
+    assert local_index.read_bytes() == original_bytes, "restored index differs from original"
+
+    # Restored index is functional.
+    ret = DenseRetriever.from_cache(local_index, local_ids, RandomEncoder(), query_prefix="")
+    hits = ret.search("q", top_k=40)
+    assert len(hits) == 40
+    assert {eid for eid, _ in hits} == set(corpus)
+
+
+def test_restore_index_from_drive_returns_false_when_absent(tmp_path):
+    """No manifest on Drive -> restore reports failure so caller rebuilds."""
+    from src.retriever_dense import restore_index_from_drive
+
+    drive_dir = tmp_path / "drive"
+    local_dir = tmp_path / "local"
+    drive_dir.mkdir()
+    local_dir.mkdir()
+    ok = restore_index_from_drive(
+        drive_dir / "dense_index_bge.faiss",
+        drive_dir / "dense_index_bge.ids.json",
+        local_dir / "dense_index_bge.faiss",
+        local_dir / "dense_index_bge.ids.json",
+    )
+    assert ok is False
+
+
+def test_restore_index_from_drive_rejects_missing_part(tmp_path):
+    """A manifest present but a part missing -> restore fails cleanly."""
+    from src.retriever_dense import (
+        build_dense_index,
+        restore_index_from_drive,
+        save_index_to_drive,
+    )
+
+    corpus = {f"e-{i}": f"t{i}" for i in range(20)}
+    rng = np.random.default_rng(1)
+
+    class RandomEncoder:
+        def encode(self, texts, batch_size=128, normalize_embeddings=True,
+                   convert_to_numpy=True, show_progress_bar=False):
+            out = rng.standard_normal((len(texts), 8)).astype("float32")
+            if normalize_embeddings:
+                out /= np.linalg.norm(out, axis=1, keepdims=True)
+            return out
+
+    local_dir = tmp_path / "local"
+    drive_dir = tmp_path / "drive"
+    local_dir.mkdir()
+    drive_dir.mkdir()
+    local_index = local_dir / "dense_index_bge.faiss"
+    local_ids = local_dir / "dense_index_bge.ids.json"
+    drive_index = drive_dir / "dense_index_bge.faiss"
+    drive_ids = drive_dir / "dense_index_bge.ids.json"
+
+    build_dense_index(corpus, RandomEncoder(), local_index, local_ids, batch_size=4)
+    # 20 x 8-dim vectors -> ~0.7 KB index; 256-byte chunks -> ~3 parts.
+    save_index_to_drive(local_index, local_ids, drive_index, drive_ids, chunk_size=256)
+
+    # Delete one part: restore must fail rather than produce a truncated index.
+    parts = sorted(drive_dir.glob("dense_index_bge.faiss.part*"))
+    assert len(parts) >= 2
+    parts[-1].unlink()
+
+    restore_target = tmp_path / "restore" / "dense_index_bge.faiss"
+    restore_ids = tmp_path / "restore" / "dense_index_bge.ids.json"
+    ok = restore_index_from_drive(drive_index, drive_ids, restore_target, restore_ids)
+    assert ok is False
+    assert not restore_target.exists()

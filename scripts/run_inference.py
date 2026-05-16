@@ -150,7 +150,11 @@ def load_hybrid_components(cfg: Config | None = None, device: str | None = None)
     """Load BM25, dense, CE, and evidence corpus once for hybrid inference."""
     from sentence_transformers import SentenceTransformer
 
-    from src.retriever_dense import DenseRetriever, resolve_dense_paths
+    from src.retriever_dense import (
+        DenseRetriever,
+        resolve_dense_paths,
+        restore_index_from_drive,
+    )
     from src.retriever_hybrid import HybridRetriever
 
     cfg = cfg or Config()
@@ -163,10 +167,20 @@ def load_hybrid_components(cfg: Config | None = None, device: str | None = None)
         cfg.dense_index_path, cfg.dense_ids_path
     )
     if not dense_index_path.exists():
-        raise FileNotFoundError(
-            f"Dense index not found at {dense_index_path}. On Colab, run cell 1.4 "
-            "in this session first — local SSD is wiped between sessions."
+        # Local SSD empty (fresh session). Try restoring from Drive chunks
+        # before giving up — saves a 40-min rebuild.
+        restored = (
+            dense_index_path != cfg.dense_index_path
+            and restore_index_from_drive(
+                cfg.dense_index_path, cfg.dense_ids_path,
+                dense_index_path, dense_ids_path,
+            )
         )
+        if not restored:
+            raise FileNotFoundError(
+                f"Dense index not found at {dense_index_path} and no Drive backup "
+                "to restore. Run cell 1.4 (build dense index) first."
+            )
     dense = DenseRetriever.from_cache(dense_index_path, dense_ids_path, encoder)
     hybrid = HybridRetriever(
         bm25=bm25, dense=dense, k_rrf=cfg.rrf_k,
