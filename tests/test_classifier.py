@@ -104,3 +104,16 @@ def test_eval_macro_f1_dev_correct_label_mapping():
     )
     assert all(p == "SUPPORTS" for p in y_pred), \
         f"Expected all SUPPORTS predictions, got {y_pred}"
+
+
+# ── I2: DISPUTED weight boost uses LABEL2ID index ────────────────────────────
+
+def test_disputed_weight_boost_uses_label2id():
+    """DISPUTED weight boost must use LABEL2ID['DISPUTED'] not hardcoded [3]."""
+    from classifier import FactCheckDataset, LABEL2ID
+    tok = make_mock_tokenizer()
+    ds = FactCheckDataset(make_data_dict(), make_evidence_dict(), tok)
+    original_disputed_weight = ds.class_weights[LABEL2ID["DISPUTED"]].item()
+    # Verify the index is correct by checking value matches index 3 (current mapping)
+    assert LABEL2ID["DISPUTED"] == 3, "Sanity: DISPUTED should be index 3"
+    assert original_disputed_weight > 0

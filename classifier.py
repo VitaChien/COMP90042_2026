@@ -336,7 +336,7 @@ def train_deberta(
 
     if _ckpt_model is not None and reuse_if_found:
         print("Evaluating checkpoint on dev set (oracle mode) ...")
-        _ckpt_model = _ckpt_model.half().to(ft_device)
+        _ckpt_model = _ckpt_model.to(ft_device)
         _ckpt_model.eval()
         _pre_f1, _pre_yt, _pre_yp = eval_macro_f1_dev(
             _ckpt_model, _ckpt_tok, dev_data, evidence_dict, ft_device
@@ -365,7 +365,7 @@ def train_deberta(
         max_length=256, max_ev=3,
     )
     # Boost DISPUTED weight — auto-computed weight is insufficient for the rare class
-    train_dataset.class_weights[3] *= disputed_weight_boost
+    train_dataset.class_weights[LABEL2ID["DISPUTED"]] *= disputed_weight_boost
     print(f"DISPUTED weight boosted ×{disputed_weight_boost:.1f} → {train_dataset.class_weights.tolist()}")
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     print(f"Train: {len(train_dataset):,} examples | {len(train_loader)} batches/epoch")
