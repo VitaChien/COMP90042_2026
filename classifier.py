@@ -137,34 +137,27 @@ class FactCheckPipeline:
 
 class FactCheckDataset(Dataset):
     """
-    PyTorch Dataset for fine-tuning.
-    Input:  claim [SEP] evidence text
-    Output: label index
+    PyTorch Dataset for fine-tuning DeBERTa on 4-class fact-checking.
+
+    Input:  evidence text [SEP] claim
+    Output: label index (SUPPORTS=0, REFUTES=1, NOT_ENOUGH_INFO=2, DISPUTED=3)
 
     P1: For NOT_ENOUGH_INFO claims, gold evidence is replaced with
         BM25-retrieved passages (topically related, not entailing).
     P2: Exposes class_weights for weighted cross-entropy loss.
-
-    label2id: optional override — pass a custom mapping to train a subset
-        of classes (e.g., 3-class Layer 1 or binary Layer 2 DISPUTED detector).
-        Examples with labels not present in label2id are silently skipped.
     """
 
-    LABEL2ID = {"SUPPORTS": 0, "REFUTES": 1, "NOT_ENOUGH_INFO": 2, "DISPUTED": 3}
-
     def __init__(self, data_dict, evidence_dict, tokenizer,
-                 bm25_retriever=None, max_length=512, max_ev=3, label2id=None):
+                 bm25_retriever=None, max_length=512, max_ev=3):
         self.tokenizer  = tokenizer
         self.max_length = max_length
-        _label2id       = label2id if label2id is not None else self.LABEL2ID
-        n_classes       = len(_label2id)
         self.items      = []
 
         for item in data_dict.values():
             claim = item["claim_text"]
-            if item["claim_label"] not in _label2id:
+            if item["claim_label"] not in LABEL2ID:
                 continue
-            label_id = _label2id[item["claim_label"]]
+            label_id = LABEL2ID[item["claim_label"]]
 
             if item["claim_label"] == "NOT_ENOUGH_INFO" and bm25_retriever is not None:
                 retrieved = bm25_retriever.retrieve(claim, top_k=max_ev)
@@ -177,13 +170,13 @@ class FactCheckDataset(Dataset):
 
         label_counts = Counter(item[2] for item in self.items)
         total        = len(self.items)
+        n            = len(LABEL2ID)
         self.class_weights = torch.tensor(
-            [total / (label_counts.get(i, 1) * n_classes) for i in range(n_classes)],
+            [total / (label_counts.get(i, 1) * n) for i in range(n)],
             dtype=torch.float,
         )
-        id2name = {v: k for k, v in _label2id.items()}
-        print(f"Dataset: {len(self.items):,} examples | {n_classes} classes")
-        print(f"Class weights: { {id2name[i]: f'{self.class_weights[i].item():.3f}' for i in range(n_classes)} }")
+        print(f"Dataset: {len(self.items):,} examples | {n} classes")
+        print(f"Class weights: { {ID2LABEL[i]: f'{self.class_weights[i].item():.3f}' for i in range(n)} }")
 
     def __len__(self):
         return len(self.items)
