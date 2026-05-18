@@ -351,7 +351,7 @@ Participation in the leaderboard is optional and does not contribute to your fin
 - This is a **separate assessment from Assignment 3 (35 marks** for project report and code ).  
 - Please refer to the [subject handbook](https://handbook.unimelb.edu.au/subjects/comp90042/assessment) for full assessment details.
 
-The peer review will take place **from 24 May to 29 May 2026**.
+The peer review will take place **from 25 May to 29 May 2026**.
 
 
 **The detailed procedure will be shared in Week 10.**
@@ -363,7 +363,7 @@ After the review period concludes, you will receive the reviews written for your
 
 Each student reviews 2 reports from other teams (randomly assigned). You are required to summarise the report, talk about the strengths and weaknesses (three comment sections). See [A4_part1_peerreview.pdf](https://github.com/drcarenhan/COMP90042_2026/blob/main/A4_part1_peerreview.pdf) for more details. Note that this constitutes the first part of Assignment 4, and it is an individual task, so you don't need to collaborate with your teammates to do the reviews (your teammates will receive their reports to review).
 **Peer Review – Part 1 Due: 27 May 2026**
-(Starts: 9:00 PM, 24 May 2026 — No extension)
+(Starts: 9:00 AM, 25 May 2026 — No extension)
 
 **Peer Review Scoring- Part 2**
 
