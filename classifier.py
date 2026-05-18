@@ -286,16 +286,24 @@ def load_deberta_checkpoint(local_path, hub_repo="", num_labels=4):
     return None, None, None
 
 
-def load_retriever_cache(json_path: str) -> dict:
+def load_retriever_cache(json_path: str, gold_path: str = "") -> dict:
     """Load pre-computed retriever results from a JSON cache file.
 
     Returns a data dict compatible with FactCheckDataset and eval_macro_f1_dev:
         {claim_id: {claim_text, claim_label, evidences: [ev_id, ...]}}
 
+    Only the cache's `evidences` field is the retriever's output and trustworthy.
+    The cache's `claim_label` is unreliable. Pass `gold_path` (a *-claims.json
+    file) to overwrite claim_label and claim_text from gold — required for any
+    split used in training or F1 evaluation. Omit gold_path only for the
+    unlabelled test set, where the cache's own fields are kept as-is.
+
     Pass the result as train_data/dev_data with bm25_retriever=None so that
     cached evidence IDs are used for all labels, including NOT_ENOUGH_INFO.
 
-    Raises ValueError if any entry is missing claim_text, claim_label, or evidences.
+    Raises ValueError if any cache entry is missing claim_text, claim_label, or
+    evidences; if evidences is not a list; or if gold_path is given but a
+    claim_id is absent from the gold file.
     """
     with open(json_path) as f:
         data = json.load(f)
@@ -308,7 +316,21 @@ def load_retriever_cache(json_path: str) -> dict:
             raise ValueError(
                 f"{claim_id!r}: 'evidences' must be a list, got {type(entry['evidences']).__name__!r}"
             )
-    return data
+    if not gold_path:
+        return data
+
+    with open(gold_path) as f:
+        gold = json.load(f)
+    merged = {}
+    for claim_id, entry in data.items():
+        if claim_id not in gold:
+            raise ValueError(f"{claim_id!r} not found in gold file {gold_path!r}")
+        merged[claim_id] = {
+            "claim_text":  gold[claim_id]["claim_text"],
+            "claim_label": gold[claim_id]["claim_label"],
+            "evidences":   entry["evidences"],
+        }
+    return merged
 
 
 # ── train_deberta ─────────────────────────────────────────────────────────────

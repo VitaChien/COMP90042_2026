@@ -269,3 +269,45 @@ def test_load_retriever_cache_raises_on_invalid_evidences_type(tmp_path):
     with pytest.raises(ValueError, match="claim-5"):
         from classifier import load_retriever_cache
         load_retriever_cache(str(cache_file))
+
+
+def test_load_retriever_cache_overwrites_label_from_gold(tmp_path):
+    """With gold_path, claim_label/claim_text come from gold; evidences from cache."""
+    from classifier import load_retriever_cache
+
+    cache = {
+        "claim-1": {
+            "claim_text": "stale text",
+            "claim_label": "DISPUTED",      # WRONG — cache labels are corrupt
+            "evidences": ["ev-1", "ev-2"],  # the only trustworthy field
+        },
+    }
+    gold = {
+        "claim-1": {"claim_text": "real text", "claim_label": "SUPPORTS"},
+    }
+    cache_file = tmp_path / "cache.json"
+    gold_file = tmp_path / "gold.json"
+    cache_file.write_text(json.dumps(cache))
+    gold_file.write_text(json.dumps(gold))
+
+    result = load_retriever_cache(str(cache_file), gold_path=str(gold_file))
+    assert result["claim-1"]["claim_label"] == "SUPPORTS"
+    assert result["claim-1"]["claim_text"] == "real text"
+    assert result["claim-1"]["evidences"] == ["ev-1", "ev-2"]
+
+
+def test_load_retriever_cache_raises_when_claim_missing_from_gold(tmp_path):
+    """A cache claim absent from the gold file is a fatal mismatch."""
+    from classifier import load_retriever_cache
+
+    cache = {
+        "claim-99": {"claim_text": "x", "claim_label": "SUPPORTS", "evidences": ["ev-1"]},
+    }
+    gold = {"claim-1": {"claim_text": "y", "claim_label": "REFUTES"}}
+    cache_file = tmp_path / "cache.json"
+    gold_file = tmp_path / "gold.json"
+    cache_file.write_text(json.dumps(cache))
+    gold_file.write_text(json.dumps(gold))
+
+    with pytest.raises(ValueError, match="claim-99"):
+        load_retriever_cache(str(cache_file), gold_path=str(gold_file))
