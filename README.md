@@ -34,16 +34,16 @@ For this assignment, **your primary goal is not simply to achieve the highest pe
 The important dates for the project are as follows:
 - **Project Specification Release Date**: 24 April 2026 
 - **Project Group Release Date**: 25 April 2026
-- **Project Final Report & Code Submission Due**:  22 May 2026 **(NO extension will be given less than 2 days before deadline)**
+- **Project Final Report & Code Submission Due**:  <strike>22 May 2026</strike> 24 May 2026 **HARD DEADLINE** (NO extension will be given less than 2 days before deadline)
 - **Peer Review – Part 1 Due**: 27 May 2026  
-  *(Starts: 9:00 PM, 24 May 2026 — No extension)*  
+  *(Starts: <strike>9:00 PM, 24 May 2026</strike> 9:00 AM, 25 May 2026— No extension)*  
 - **Peer Review – Part 2 Due**: 29 May 2026  
   *(Starts: 9:00 AM, 28 May 2026 — No extension)*  
 
 All deadlines are **11:59 PM (AEST, Melbourne Time)**.
 <br/>
 **Leaderboard (Optional)**  
-The leaderboard is optional and will run from **1 May to 22 May 2026 (11:59 PM AEST)**.
+The leaderboard is optional and will run from **1 May to <strike>22</strike> 24 May 2026 (11:59 PM AEST)**.
 
 
 <br/>
