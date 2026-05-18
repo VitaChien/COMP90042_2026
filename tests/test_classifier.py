@@ -1,4 +1,5 @@
 """Tests for classifier.py bug fixes."""
+import json
 import pytest
 import torch
 from unittest.mock import MagicMock, patch
@@ -211,3 +212,45 @@ def test_eval_macro_f1_dev_nei_uses_gold_without_retriever():
 
     assert any("gold evidence text" in ev for ev in captured_ev_texts), \
         "Without retriever, NEI must use gold evidence"
+
+
+# ── load_retriever_cache ──────────────────────────────────────────────────────
+
+def test_load_retriever_cache_returns_valid_dict(tmp_path):
+    """load_retriever_cache should load JSON and return the dict unchanged."""
+    from classifier import load_retriever_cache
+
+    data = {
+        "claim-1": {
+            "claim_text": "foo",
+            "claim_label": "SUPPORTS",
+            "evidences": ["ev-1", "ev-2"],
+        },
+        "claim-2": {
+            "claim_text": "bar",
+            "claim_label": "NOT_ENOUGH_INFO",
+            "evidences": ["ev-3"],
+        },
+    }
+    cache_file = tmp_path / "cache.json"
+    cache_file.write_text(json.dumps(data))
+    result = load_retriever_cache(str(cache_file))
+    assert result == data
+    assert len(result) == 2
+
+
+def test_load_retriever_cache_raises_on_missing_field(tmp_path):
+    """load_retriever_cache should raise ValueError if entry is missing required fields."""
+    from classifier import load_retriever_cache
+
+    data = {
+        "claim-99": {
+            "claim_text": "missing evidences",
+            "claim_label": "SUPPORTS",
+            # no "evidences" key
+        },
+    }
+    cache_file = tmp_path / "cache.json"
+    cache_file.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="claim-99"):
+        load_retriever_cache(str(cache_file))

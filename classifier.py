@@ -6,6 +6,7 @@ Helpers:  eval_macro_f1_dev(), load_deberta_checkpoint()
 Training: train_deberta()
 """
 
+import json
 import os
 import gc
 from collections import Counter
@@ -283,6 +284,27 @@ def load_deberta_checkpoint(local_path, hub_repo="", num_labels=4):
             print(f"  Hub load failed: {e}")
 
     return None, None, None
+
+
+def load_retriever_cache(json_path: str) -> dict:
+    """Load pre-computed retriever results from a JSON cache file.
+
+    Returns a data dict compatible with FactCheckDataset and eval_macro_f1_dev:
+        {claim_id: {claim_text, claim_label, evidences: [ev_id, ...]}}
+
+    Pass the result as train_data/dev_data with bm25_retriever=None so that
+    cached evidence IDs are used for all labels, including NOT_ENOUGH_INFO.
+
+    Raises ValueError if any entry is missing claim_text, claim_label, or evidences.
+    """
+    with open(json_path) as f:
+        data = json.load(f)
+    required = {"claim_text", "claim_label", "evidences"}
+    for claim_id, entry in data.items():
+        missing = required - entry.keys()
+        if missing:
+            raise ValueError(f"{claim_id!r} is missing required fields: {missing}")
+    return data
 
 
 # ── train_deberta ─────────────────────────────────────────────────────────────
