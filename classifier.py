@@ -339,7 +339,8 @@ def train_deberta(
         _ckpt_model = _ckpt_model.to(ft_device)
         _ckpt_model.eval()
         _pre_f1, _pre_yt, _pre_yp = eval_macro_f1_dev(
-            _ckpt_model, _ckpt_tok, dev_data, evidence_dict, ft_device
+            _ckpt_model, _ckpt_tok, dev_data, evidence_dict, ft_device,
+            bm25_retriever=bm25_retriever,
         )
         print(f"Dev macro-F1 (oracle): {_pre_f1:.4f}")
         print(classification_report(_pre_yt, _pre_yp, labels=LABEL_NAMES, zero_division=0))
@@ -407,8 +408,10 @@ def train_deberta(
             total_loss += loss.item()
 
         avg_loss     = total_loss / len(train_loader)
-        dev_f1, _, _ = eval_macro_f1_dev(ft_model, ft_tokenizer, dev_data, evidence_dict, ft_device,
-                                         batch_size=8)
+        dev_f1, _, _ = eval_macro_f1_dev(
+            ft_model, ft_tokenizer, dev_data, evidence_dict, ft_device,
+            batch_size=8, bm25_retriever=bm25_retriever,
+        )
         print(f"Epoch {epoch+1}/{epochs}  loss={avg_loss:.4f}  dev macro-F1={dev_f1:.4f}")
 
         if dev_f1 > best_f1:

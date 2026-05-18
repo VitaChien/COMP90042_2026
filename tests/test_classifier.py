@@ -117,3 +117,93 @@ def test_disputed_weight_boost_uses_label2id():
     # Verify the index is correct by checking value matches index 3 (current mapping)
     assert LABEL2ID["DISPUTED"] == 3, "Sanity: DISPUTED should be index 3"
     assert original_disputed_weight > 0
+
+
+# ── I3: NEI evidence uses BM25 in eval when retriever provided ───────────────
+
+def test_eval_macro_f1_dev_nei_uses_bm25_when_provided():
+    """When bm25_retriever is passed, NEI examples use retrieved evidence not gold."""
+    from classifier import eval_macro_f1_dev, ID2LABEL
+
+    retrieved_text = "bm25 retrieved passage"
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = [{"text": retrieved_text, "id": "ret_0"}]
+
+    captured_ev_texts = []
+
+    mock_model = MagicMock()
+    mock_model.config.id2label = {0: "SUPPORTS", 1: "REFUTES", 2: "NOT_ENOUGH_INFO", 3: "DISPUTED"}
+    mock_model.eval = MagicMock()
+
+    def fake_tokenizer(ev_texts, claims, **kwargs):
+        captured_ev_texts.extend(ev_texts)
+        result = MagicMock()
+        result.to = lambda d: result
+        result.items = lambda: [
+            ("input_ids", torch.zeros(len(ev_texts), 5, dtype=torch.long)),
+            ("attention_mask", torch.ones(len(ev_texts), 5, dtype=torch.long)),
+        ]
+        return result
+
+    logits = torch.zeros(1, 4)
+    logits[0][2] = 10.0  # predict NOT_ENOUGH_INFO
+    mock_model.return_value.logits = logits
+
+    dev_data = {
+        "nei_claim": {
+            "claim_text": "a nei claim",
+            "claim_label": "NOT_ENOUGH_INFO",
+            "evidences": [],  # gold evidences empty for NEI
+        }
+    }
+    evidence_dict = {}
+
+    eval_macro_f1_dev(
+        mock_model, fake_tokenizer, dev_data, evidence_dict,
+        device=torch.device("cpu"), batch_size=16,
+        bm25_retriever=mock_retriever,
+    )
+
+    mock_retriever.retrieve.assert_called_once_with("a nei claim", top_k=3)
+    assert any(retrieved_text in ev for ev in captured_ev_texts), \
+        f"BM25 retrieved text must be used for NEI evidence, got: {captured_ev_texts}"
+
+
+def test_eval_macro_f1_dev_nei_uses_gold_without_retriever():
+    """Without bm25_retriever, NEI falls back to gold evidence (original behaviour)."""
+    from classifier import eval_macro_f1_dev
+
+    captured_ev_texts = []
+
+    mock_model = MagicMock()
+    mock_model.config.id2label = {0: "SUPPORTS", 1: "REFUTES", 2: "NOT_ENOUGH_INFO", 3: "DISPUTED"}
+    mock_model.eval = MagicMock()
+
+    def fake_tokenizer(ev_texts, claims, **kwargs):
+        captured_ev_texts.extend(ev_texts)
+        result = MagicMock()
+        result.to = lambda d: result
+        result.items = lambda: [
+            ("input_ids", torch.zeros(len(ev_texts), 5, dtype=torch.long)),
+            ("attention_mask", torch.ones(len(ev_texts), 5, dtype=torch.long)),
+        ]
+        return result
+
+    mock_model.return_value.logits = torch.zeros(1, 4)
+
+    dev_data = {
+        "nei": {
+            "claim_text": "nei claim",
+            "claim_label": "NOT_ENOUGH_INFO",
+            "evidences": ["ev_gold"],
+        }
+    }
+    evidence_dict = {"ev_gold": "gold evidence text"}
+
+    eval_macro_f1_dev(
+        mock_model, fake_tokenizer, dev_data, evidence_dict,
+        device=torch.device("cpu"),
+    )
+
+    assert any("gold evidence text" in ev for ev in captured_ev_texts), \
+        "Without retriever, NEI must use gold evidence"
