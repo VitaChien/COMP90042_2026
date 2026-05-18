@@ -77,10 +77,14 @@ def test_eval_macro_f1_dev_correct_label_mapping():
     """Predictions are mapped using model.config.id2label, not the module constant."""
     from classifier import eval_macro_f1_dev, LABEL2ID, ID2LABEL
 
-    # Build a mock model that always predicts index 0 (SUPPORTS)
+    # Use a DIFFERENT id2label than module constant: index 0 → "REFUTES" (not "SUPPORTS")
+    # If function uses module constant, it would return "SUPPORTS" for argmax=0
+    # If function uses model.config.id2label, it returns "REFUTES" — the correct behaviour
+    inverted_id2label = {0: "REFUTES", 1: "SUPPORTS", 2: "NOT_ENOUGH_INFO", 3: "DISPUTED"}
+
     mock_model = MagicMock()
-    mock_model.config.id2label = ID2LABEL  # {0:'SUPPORTS', 1:'REFUTES', ...}
-    logits = torch.zeros(2, 4)  # batch of 2, argmax → 0 → SUPPORTS
+    mock_model.config.id2label = inverted_id2label
+    logits = torch.zeros(2, 4)  # batch of 2, argmax → 0
     mock_model.return_value.logits = logits
     mock_model.eval = MagicMock()
 
@@ -93,8 +97,8 @@ def test_eval_macro_f1_dev_correct_label_mapping():
     mock_tokenizer = MagicMock(return_value=enc_mock)
 
     dev_data = {
-        "a": {"claim_text": "claim a", "claim_label": "SUPPORTS", "evidences": ["ev_0"]},
-        "b": {"claim_text": "claim b", "claim_label": "SUPPORTS", "evidences": ["ev_1"]},
+        "a": {"claim_text": "claim a", "claim_label": "REFUTES", "evidences": ["ev_0"]},
+        "b": {"claim_text": "claim b", "claim_label": "REFUTES", "evidences": ["ev_1"]},
     }
     evidence_dict = {"ev_0": "text 0", "ev_1": "text 1"}
 
@@ -102,8 +106,8 @@ def test_eval_macro_f1_dev_correct_label_mapping():
         mock_model, mock_tokenizer, dev_data, evidence_dict,
         device=torch.device("cpu"), batch_size=2,
     )
-    assert all(p == "SUPPORTS" for p in y_pred), \
-        f"Expected all SUPPORTS predictions, got {y_pred}"
+    assert all(p == "REFUTES" for p in y_pred), \
+        f"Expected all REFUTES (from model.config), got {y_pred} — possible fallback to module constant"
 
 
 # ── I2: DISPUTED weight boost uses LABEL2ID index ────────────────────────────
@@ -123,7 +127,7 @@ def test_disputed_weight_boost_uses_label2id():
 
 def test_eval_macro_f1_dev_nei_uses_bm25_when_provided():
     """When bm25_retriever is passed, NEI examples use retrieved evidence not gold."""
-    from classifier import eval_macro_f1_dev, ID2LABEL
+    from classifier import eval_macro_f1_dev
 
     retrieved_text = "bm25 retrieved passage"
     mock_retriever = MagicMock()
