@@ -198,21 +198,32 @@ class FactCheckDataset(Dataset):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def eval_macro_f1_dev(model, tokenizer, dev_data, evidence_dict, device, batch_size=16,
-                      label2id=None, id2label=None, label_names=None):
-    """Dev macro-F1 using gold evidence (oracle mode). Returns (macro_f1, y_true, y_pred)."""
-    _label2id   = label2id   or LABEL2ID
-    _id2label   = id2label   or ID2LABEL
+def eval_macro_f1_dev(model, tokenizer, dev_data, evidence_dict, device,
+                      batch_size=16, label2id=None, label_names=None,
+                      bm25_retriever=None):
+    """Dev macro-F1 using oracle evidence. Returns (macro_f1, y_true, y_pred).
+
+    id2label is always derived from model.config.id2label — not a parameter.
+    bm25_retriever: if provided, NEI examples use retrieved evidence (matches training).
+    """
+    _label2id    = label2id    or LABEL2ID
+    _id2label    = {int(k): v for k, v in model.config.id2label.items()}
     _label_names = label_names or LABEL_NAMES
     model.eval()
     y_true, y_pred = [], []
-    items = [
-        (v["claim_text"],
-         " ".join(evidence_dict.get(ev, "") for ev in v.get("evidences", [])[:3]),
-         v["claim_label"])
-        for v in dev_data.values()
-        if v["claim_label"] in _label2id
-    ]
+    items = []
+    for v in dev_data.values():
+        if v["claim_label"] not in _label2id:
+            continue
+        if v["claim_label"] == "NOT_ENOUGH_INFO" and bm25_retriever is not None:
+            ev_text = " ".join(
+                r["text"] for r in bm25_retriever.retrieve(v["claim_text"], top_k=3)
+            )
+        else:
+            ev_text = " ".join(
+                evidence_dict.get(ev, "") for ev in v.get("evidences", [])[:3]
+            )
+        items.append((v["claim_text"], ev_text, v["claim_label"]))
     for i in range(0, len(items), batch_size):
         batch    = items[i : i + batch_size]
         claims   = [x[0] for x in batch]
@@ -428,7 +439,9 @@ def train_deberta(
     torch.cuda.empty_cache()
 
     # Reload best checkpoint
-    ft_model     = AutoModelForSequenceClassification.from_pretrained(deberta_best_dir).to(ft_device)
+    ft_model = AutoModelForSequenceClassification.from_pretrained(
+        deberta_best_dir, id2label=ID2LABEL, label2id=LABEL2ID,
+    ).to(ft_device)
     ft_tokenizer = AutoTokenizer.from_pretrained(deberta_best_dir)
     print(f"Best model reloaded from {deberta_best_dir}")
     return ft_model, ft_tokenizer
