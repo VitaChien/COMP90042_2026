@@ -254,3 +254,18 @@ def test_load_retriever_cache_raises_on_missing_field(tmp_path):
     cache_file.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="claim-99"):
         load_retriever_cache(str(cache_file))
+
+
+def test_load_retriever_cache_raises_on_invalid_evidences_type(tmp_path):
+    data = {
+        "claim-5": {
+            "claim_text": "foo",
+            "claim_label": "SUPPORTS",
+            "evidences": None,   # should be a list
+        },
+    }
+    cache_file = tmp_path / "cache.json"
+    cache_file.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="claim-5"):
+        from classifier import load_retriever_cache
+        load_retriever_cache(str(cache_file))

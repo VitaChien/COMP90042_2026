@@ -304,6 +304,10 @@ def load_retriever_cache(json_path: str) -> dict:
         missing = required - entry.keys()
         if missing:
             raise ValueError(f"{claim_id!r} is missing required fields: {missing}")
+        if not isinstance(entry["evidences"], list):
+            raise ValueError(
+                f"{claim_id!r}: 'evidences' must be a list, got {type(entry['evidences']).__name__!r}"
+            )
     return data
 
 
