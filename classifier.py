@@ -201,10 +201,11 @@ class FactCheckDataset(Dataset):
 def eval_macro_f1_dev(model, tokenizer, dev_data, evidence_dict, device,
                       batch_size=16, label2id=None, label_names=None,
                       bm25_retriever=None):
-    """Dev macro-F1 using oracle evidence. Returns (macro_f1, y_true, y_pred).
+    """Dev macro-F1. Returns (macro_f1, y_true, y_pred).
 
     id2label is always derived from model.config.id2label — not a parameter.
-    bm25_retriever: if provided, NEI examples use retrieved evidence (matches training).
+    bm25_retriever: if provided, NEI examples use BM25-retrieved evidence (matches
+    training distribution); otherwise gold/oracle evidence is used.
     """
     _label2id    = label2id    or LABEL2ID
     _id2label    = {int(k): v for k, v in model.config.id2label.items()}
@@ -335,14 +336,14 @@ def train_deberta(
     _ckpt_model, _ckpt_tok, _ckpt_src = load_deberta_checkpoint(deberta_best_dir, hf_deberta_repo, num_labels=4)
 
     if _ckpt_model is not None and reuse_if_found:
-        print("Evaluating checkpoint on dev set (oracle mode) ...")
+        print("Evaluating checkpoint on dev set ...")
         _ckpt_model = _ckpt_model.to(ft_device)
         _ckpt_model.eval()
         _pre_f1, _pre_yt, _pre_yp = eval_macro_f1_dev(
             _ckpt_model, _ckpt_tok, dev_data, evidence_dict, ft_device,
             bm25_retriever=bm25_retriever,
         )
-        print(f"Dev macro-F1 (oracle): {_pre_f1:.4f}")
+        print(f"Dev macro-F1: {_pre_f1:.4f}")
         print(classification_report(_pre_yt, _pre_yp, labels=LABEL_NAMES, zero_division=0))
         print("reuse_if_found=True → Training SKIPPED.")
         return _ckpt_model, _ckpt_tok
