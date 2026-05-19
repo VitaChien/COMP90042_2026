@@ -13,12 +13,6 @@ from collections import Counter
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-try:
-    from bitsandbytes.optim import AdamW8bit as AdamW
-    print("Using 8-bit AdamW (bitsandbytes) — optimizer memory ~0.37 GB vs 1.46 GB fp32.")
-except ImportError:
-    from torch.optim import AdamW
-    print("bitsandbytes not found — falling back to fp32 AdamW (may OOM on 15 GB GPU).")
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -333,6 +327,26 @@ def load_retriever_cache(json_path: str, gold_path: str = "") -> dict:
     return merged
 
 
+def _make_optimizer(params, lr, weight_decay, device):
+    """Pick an AdamW optimizer suited to the device.
+
+    8-bit AdamW (bitsandbytes) saves optimizer memory but requires a CUDA GPU —
+    it crashes on CPU tensors. On CPU, or when bitsandbytes is unavailable, fall
+    back to the plain fp32 torch AdamW.
+    """
+    if device.type == "cuda":
+        try:
+            from bitsandbytes.optim import AdamW8bit
+            print("Optimizer: 8-bit AdamW (bitsandbytes) — ~0.37 GB vs 1.46 GB fp32.")
+            return AdamW8bit(params, lr=lr, weight_decay=weight_decay)
+        except ImportError:
+            print("bitsandbytes not found — using fp32 AdamW (may OOM on 15 GB GPU).")
+    else:
+        print("Optimizer: fp32 AdamW (CPU — bitsandbytes 8-bit requires a GPU).")
+    from torch.optim import AdamW
+    return AdamW(params, lr=lr, weight_decay=weight_decay)
+
+
 # ── train_deberta ─────────────────────────────────────────────────────────────
 
 def train_deberta(
@@ -424,7 +438,7 @@ def train_deberta(
     ft_model.gradient_checkpointing_enable()
     use_amp   = ft_device.type == "cuda"
 
-    optimizer   = AdamW(ft_model.parameters(), lr=lr, weight_decay=0.1)
+    optimizer   = _make_optimizer(ft_model.parameters(), lr, 0.1, ft_device)
     total_steps = len(train_loader) * epochs
     scheduler   = get_linear_schedule_with_warmup(
         optimizer,
