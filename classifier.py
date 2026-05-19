@@ -435,8 +435,11 @@ def train_deberta(
     print(f"Train: {len(train_dataset):,} examples | {len(train_loader)} batches/epoch")
 
     ft_model = ft_model.float().to(ft_device)
-    ft_model.gradient_checkpointing_enable()
     use_amp   = ft_device.type == "cuda"
+    # Gradient checkpointing trades compute for VRAM — only worth it on GPU.
+    # On CPU there is no VRAM limit, so it just doubles forward compute.
+    if use_amp:
+        ft_model.gradient_checkpointing_enable()
 
     optimizer   = _make_optimizer(ft_model.parameters(), lr, 0.1, ft_device)
     total_steps = len(train_loader) * epochs
