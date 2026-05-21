@@ -50,32 +50,22 @@ any are missing.
 
 ---
 
-## 3. How to run
+## 3. How to run (Google Colab)
 
-### Option A — Google Colab (recommended; this is how the submitted logs were produced)
+The notebook is built to run on **Google Colab**.
 
 1. Upload and unzip `COMP90042_Group073_resource.zip` into the session, e.g. to
    `/content/COMP90042_073`.
 2. Put the data files in `/content/COMP90042_073/data/` (upload directly, or mount Google Drive
    and copy them in).
-3. **Runtime → Change runtime type → GPU** (a T4 is enough).
+3. **Runtime → Change runtime type → GPU** (a T4 is enough; CPU is far too slow for
+   cross-encoder training).
 4. `Runtime → Run all`. Cell 1.1 installs all Python dependencies automatically and locates the
    project root.
 
 > Cell 1.1 auto-detects `PROJECT_ROOT` (the unzipped folder containing `src/`, `scripts/`, `data/`)
 > by scanning the current directory and its immediate subfolders. If detection fails, set
 > `PROJECT_ROOT` explicitly at the top of cell 1.1, then re-run it.
-
-### Option B — Local
-
-```bash
-conda env create -f environment.yml
-conda activate comp90042
-jupyter notebook Group_073_COMP90042_Project_2026.ipynb   # then Run All
-```
-
-A CUDA GPU is used if present, otherwise Apple-Silicon **MPS**, otherwise CPU (CPU is very slow
-for cross-encoder training).
 
 ### Execution order (the cells already follow this — just run top to bottom)
 
