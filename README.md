@@ -27,13 +27,13 @@ scripts/                                 # entry points called by the notebook
   build_bm25.py  train_cross_encoder.py  run_inference.py  __init__.py
 ```
 
-**Not included** (per the submission rules — rebuilt automatically on the first run):
+**Not included**:
 data files, the BM25 index/caches (`cache/`), trained checkpoints (`checkpoints/`), and all
 generated predictions (`outputs/`).
 
 ---
 
-## 2. Data — you must add these yourself
+## 2. Data
 
 The notebook expects the four provided data files in a `data/` folder **next to the notebook**:
 
@@ -83,10 +83,6 @@ The notebook is built to run on **Google Colab**.
 | 3.2  | Score full pipeline on dev | `outputs/dev_predictions_cnn_bilstm_multihead_final.json` |
 | 3.3  | Predict on the test set | `outputs/test_predictions_cnn_bilstm_multihead_final.json` |
 
-**Approximate runtime on a Colab T4:** BM25 build ~10 min · cross-encoder training ~50 min ·
-retrieval over the 3 splits ~40 min (train is the slow one) · classifier training a few min.
-Plan for ~1.5–2 hours end to end.
-
 ---
 
 ## 4. Outputs
@@ -120,10 +116,7 @@ python eval.py --predictions outputs/dev_predictions_cnn_bilstm_multihead_final.
 | Retriever only (BM25 → CE rerank, top-4) | 0.2017 | — (random label) | — |
 | **Full pipeline** (retriever + classifier) | **0.2017** | **0.3506** | **0.2561** |
 
-Cross-encoder training loss: 0.277 → 0.157 → 0.098 → 0.068 over 4 epochs.
-
-These figures are the saved cell outputs in the notebook (the running log required by project
-rule §2.5). Re-running reproduces them up to minor nondeterminism.
+These figures are the saved cell outputs in the notebook. Re-running reproduces them up to minor nondeterminism.
 
 ---
 
