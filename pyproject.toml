@@ -1,0 +1,50 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "data",
+    "knowledge",
+    "docs",
+    "checkpoints",
+    "cache",
+    "outputs",
+    ".ipynb_checkpoints",
+    "eval.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "N",   # pep8-naming
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501", # line too long (handled by formatter)
+    "B008", # function call in default argument (common in FastAPI/typer; harmless here)
+    "N812", # lowercase imported as non-lowercase (e.g. `import torch.nn.functional as F`)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests
+    "N802", # test names can be non-snake_case
+]
+"scripts/**/*.py" = [
+    "T201", # print() allowed in scripts
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
