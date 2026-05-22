@@ -52,20 +52,25 @@ any are missing.
 
 ## 3. How to run (Google Colab)
 
-The notebook is built to run on **Google Colab**.
+Keep **everything in one folder** — `src/`, `scripts/`, `eval.py`, the notebook, and a `data/`
+subfolder holding the four data files. Pick whichever setup you use:
 
-1. Upload and unzip `COMP90042_Group073_resource.zip` into the session, e.g. to
-   `/content/COMP90042_073`.
-2. Put the data files in `/content/COMP90042_073/data/` (upload directly, or mount Google Drive
-   and copy them in).
-3. **Runtime → Change runtime type → GPU** (a T4 is enough; CPU is far too slow for
+- **From Google Drive (how we run it):** put the unzipped project (plus `data/`) in a Drive
+  folder, e.g. `MyDrive/COMP90042_2026/`, open the notebook in Colab, and in **cell 1.1** set
+  `PROJECT_ROOT = "/content/drive/MyDrive/COMP90042_2026"`. Drive is mounted automatically.
+- **Uploaded into the session:** unzip the project into e.g. `/content/COMP90042_073`, add the
+  data files under `/content/COMP90042_073/data/`, and set `PROJECT_ROOT = ""` (auto-detect) or
+  the explicit path.
+
+Then:
+
+1. **Runtime → Change runtime type → GPU** (a T4 is enough; CPU is far too slow for
    cross-encoder training).
-4. `Runtime → Run all`. Cell 1.1 installs all Python dependencies automatically and locates the
-   project root.
+2. `Runtime → Run all`. Cell 1.1 mounts Drive (if used), installs dependencies and sets paths;
+   cell 1.2 verifies the data files are present.
 
-> Cell 1.1 auto-detects `PROJECT_ROOT` (the unzipped folder containing `src/`, `scripts/`, `data/`)
-> by scanning the current directory and its immediate subfolders. If detection fails, set
-> `PROJECT_ROOT` explicitly at the top of cell 1.1, then re-run it.
+> If cell 1.2 reports files missing, set `PROJECT_ROOT` at the top of cell 1.1 to the folder that
+> contains `src/`, `scripts/` and `data/`, then re-run from cell 1.1.
 
 ### Execution order (the cells already follow this — just run top to bottom)
 
