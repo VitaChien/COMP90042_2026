@@ -119,19 +119,6 @@ python eval.py --predictions outputs/dev_predictions_cnn_bilstm_multihead_final.
 | System | Evidence F | Claim Accuracy | Harmonic Mean |
 |--------|-----------:|---------------:|--------------:|
 | Retriever only (BM25 → CE rerank, top-4) | 0.2017 | — (random label) | — |
-| **Full pipeline** (retriever + classifier) | **0.2017** | **0.3506** | **0.2561** |
+| **Full pipeline** (retriever + classifier) | **0.2017** | **0.4221** | **0.2729** |
 
 These figures are the saved cell outputs in the notebook. Re-running reproduces them up to minor nondeterminism.
-
----
-
-## 6. Key hyperparameters (`src/config.py`)
-
-| Component | Setting |
-|-----------|---------|
-| BM25 candidate pool | top-200 |
-| Final evidence per claim | top-4 |
-| Cross-encoder | `bert-base-uncased`, max_len 128, lr 2e-5, batch 128, 4 epochs |
-| Hard negatives | 8 per positive, sampled from BM25 top-200 \ gold |
-| Classifier | embed 128 · CNN (k=3,5,7) · BiLSTM(128) · 4-head attention, max_len 384, lr 5e-4, 8 epochs, class-balanced loss |
-| Seed | 42 |
